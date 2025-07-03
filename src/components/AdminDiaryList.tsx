@@ -65,14 +65,12 @@ interface AdminDiaryListProps {
   allEntries: DiaryEntry[];
   onViewEntry: (entry: DiaryEntry) => void;
   adminMode?: boolean;
-  adminMode?: boolean;
   onDeleteEntry?: (entryId: string) => void;
 }
 
 const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   allEntries,
   onViewEntry,
-  adminMode = true,
   adminMode = true,
   onDeleteEntry
 }) => {
