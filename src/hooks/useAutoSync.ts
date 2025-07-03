@@ -277,7 +277,7 @@ export const useAutoSync = (): AutoSyncState => {
           // 必須フィールドを含め、NULL値を適切に処理
           const formattedEntry: any = {
             id: entry.id, // 既存のIDを保持
-            user_id: entry.user_id || userId, // 既存のuser_idを保持、なければ新しいIDを使用
+            user_id: userId, // 常に現在のユーザーIDを使用
             date: entry.date || new Date().toISOString().split('T')[0],
             emotion: entry.emotion || '不明',
             event: entry.event || '', // 空文字列をデフォルト値に
@@ -288,7 +288,7 @@ export const useAutoSync = (): AutoSyncState => {
           // スコアフィールドの処理
           if (entry.emotion === '無価値感' || 
               entry.emotion === '嬉しい' || 
-              entry.emotion === '感謝' || 
+              entry.emotion === '感謝' ||
               entry.emotion === '達成感' || 
               entry.emotion === '幸せ') {
             
@@ -307,7 +307,7 @@ export const useAutoSync = (): AutoSyncState => {
           }
           
           // オプションフィールドは存在する場合のみ追加
-          const optionalFields = {
+          const optionalFields: any = {
             assigned_counselor: entry.assigned_counselor || entry.assignedCounselor || '',
             // urgency_levelは'high', 'medium', 'low'または空文字列のみ許可
             urgency_level: (entry.urgency_level || entry.urgencyLevel || '') !== '' && 
@@ -320,26 +320,17 @@ export const useAutoSync = (): AutoSyncState => {
           };
           
           // 値が存在するフィールドのみを追加
-          Object.entries(optionalFields).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-              formattedEntry[key] = value;
-            }
-          });
+          formattedEntry.assigned_counselor = optionalFields.assigned_counselor;
+          formattedEntry.urgency_level = optionalFields.urgency_level;
+          formattedEntry.is_visible_to_user = optionalFields.is_visible_to_user;
+          formattedEntry.counselor_name = optionalFields.counselor_name;
+          formattedEntry.counselor_memo = optionalFields.counselor_memo;
           
           return formattedEntry;
         });
       
       // 日記データを同期
       const { success, error } = await diaryService.syncDiaries(userId, formattedEntries);
-      
-      // 同期結果の詳細をログに出力
-      console.log('同期結果:', success ? '成功' : '失敗', error || '', 'データ件数:', formattedEntries.length, 'ユーザーID:', userId);
-      
-      // 同期エラーのデバッグ情報
-      if (!success) {
-        console.error('同期エラーの詳細:', error);
-        console.log('同期に失敗したデータの一部:', formattedEntries.slice(0, 2));
-      }
       
       if (!success) {
         console.error('同期エラー:', error);

@@ -32,8 +32,14 @@ export function formatDiaryForSupabase(diaryEntry: any, userId: string) {
       (typeof diaryEntry.worthlessnessScore === 'string' && diaryEntry.worthlessnessScore !== '' ? parseInt(diaryEntry.worthlessnessScore) : 
        (typeof diaryEntry.worthlessness_score === 'number' ? diaryEntry.worthlessness_score : 
         (typeof diaryEntry.worthlessness_score === 'string' && diaryEntry.worthlessness_score !== '' ? parseInt(diaryEntry.worthlessness_score) : 50))),
+    created_at: diaryEntry.created_at || new Date().toISOString()
+  }
+  
+  // assigned_counselorフィールドが存在する場合のみ追加
+  if (diaryEntry.assigned_counselor !== undefined || diaryEntry.assignedCounselor !== undefined) {
+    formattedEntry.assigned_counselor = diaryEntry.assigned_counselor !== undefined ? 
                                         diaryEntry.assigned_counselor : 
-                                        diaryEntry.assignedCounselor;
+                                        diaryEntry.assignedCounselor || '';
   }
   
   // urgency_levelフィールドが存在する場合のみ追加
@@ -120,9 +126,9 @@ export function formatDiaryForLocal(supabaseEntry: any) {
     urgency_level: (diaryEntry.urgency_level || diaryEntry.urgencyLevel || '') !== '' && 
                   ['high', 'medium', 'low'].includes(diaryEntry.urgency_level || diaryEntry.urgencyLevel || '') ? 
                   (diaryEntry.urgency_level || diaryEntry.urgencyLevel) : '',
-    assigned_counselor: supabaseEntry.assigned_counselor || null, 
-                       (diaryEntry.isVisibleToUser !== undefined ? diaryEntry.isVisibleToUser : false),
-    counselor_name: diaryEntry.counselor_name || diaryEntry.counselorName || '',
-    counselor_memo: diaryEntry.counselor_memo || diaryEntry.counselorMemo || ''
+    assigned_counselor: supabaseEntry.assigned_counselor || null,
+    urgency_level: supabaseEntry.urgency_level || null,
+    created_at: supabaseEntry.created_at || new Date().toISOString(),
+    user: supabaseEntry.users || { line_username: 'Unknown User' }
   };
 }

@@ -68,7 +68,7 @@ export const diaryService = {
       // 日記データの検証
       const validDiaries = diaries.filter(entry => {
         // 必須フィールドの検証
-        if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event || !entry.realization) {
+        if (!entry || !entry.id || !entry.date || !entry.emotion) {
           console.warn('無効なエントリーをスキップ:', entry);
           return false;
         }
@@ -76,10 +76,12 @@ export const diaryService = {
         // スコアフィールドの検証
         if (entry.self_esteem_score === null || entry.self_esteem_score === undefined) {
           entry.self_esteem_score = 50;
+          console.log('NULL self_esteem_score を 50 に設定:', entry.id);
         }
         
         if (entry.worthlessness_score === null || entry.worthlessness_score === undefined) {
           entry.worthlessness_score = 50;
+          console.log('NULL worthlessness_score を 50 に設定:', entry.id);
         }
         
         // urgency_levelの検証
@@ -89,6 +91,16 @@ export const diaryService = {
         }
         
         return true;
+      });
+      
+      // 空の文字列をデフォルト値に設定
+      validDiaries.forEach(entry => {
+        entry.event = entry.event || '';
+        entry.realization = entry.realization || '';
+        entry.counselor_memo = entry.counselor_memo || '';
+        entry.counselor_name = entry.counselor_name || '';
+        entry.assigned_counselor = entry.assigned_counselor || '';
+        entry.is_visible_to_user = entry.is_visible_to_user === undefined ? false : entry.is_visible_to_user;
       });
       
       if (validDiaries.length === 0) {
@@ -103,7 +115,7 @@ export const diaryService = {
         .from('diary_entries')
         .upsert(validDiaries, {
           onConflict: 'id',
-          ignoreDuplicates: true
+          ignoreDuplicates: true // 重複エラーを無視
         });
       
       if (error) {
