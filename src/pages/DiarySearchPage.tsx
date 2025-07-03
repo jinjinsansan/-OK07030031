@@ -799,8 +799,9 @@ const DiarySearchPage: React.FC = () => {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
 
       {/* 検索結果エリア */}
       <div className="space-y-4">
@@ -818,136 +819,30 @@ const DiarySearchPage: React.FC = () => {
           <div className="bg-white rounded-xl shadow-lg p-6 diary-card">
             <h2 className="text-xl font-jp-bold text-gray-900 mb-6">検索結果</h2>
             <div className="space-y-4">
-          {filteredEntries.map((entry) => (
-            <div key={entry.id} className={`rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${
-              entry.emotion === '恐怖' ? 'bg-purple-50' :
-              entry.emotion === '悲しみ' ? 'bg-blue-50' :
-              entry.emotion === '怒り' ? 'bg-red-50' :
-              entry.emotion === '悔しい' ? 'bg-green-50' :
-              entry.emotion === '無価値感' ? 'bg-gray-50' :
-              entry.emotion === '罪悪感' ? 'bg-orange-50' :
-              entry.emotion === '寂しさ' ? 'bg-indigo-50' :
-              entry.emotion === '恥ずかしさ' ? 'bg-pink-50' :
-              entry.emotion === '嬉しい' ? 'bg-yellow-50' :
-              entry.emotion === '感謝' ? 'bg-teal-50' :
-              entry.emotion === '達成感' ? 'bg-lime-50' :
-              entry.emotion === '幸せ' ? 'bg-amber-50' :
-              'bg-white'
-            }`}>
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
-                  <span className={`px-3 py-1 rounded-full text-sm font-jp-medium border ${getEmotionColor(entry.emotion)}`}>
-                    {entry.emotion}
-                  </span>
-                  <span className="text-gray-500 text-xs sm:text-sm font-jp-normal">
-                    {formatDate(entry.date)}
-                  </span>
-                </div>
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={() => handleEdit(entry)}
-                    className="text-blue-600 hover:text-blue-700 p-1"
-                    title="編集"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => handleEdit(entry)}
-                    className="text-green-600 hover:text-green-700 p-1"
-                    title="編集"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(entry.id)}
-                    className="text-red-600 hover:text-red-700 p-1"
-                    title="削除"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <h4 className="font-jp-semibold text-gray-700 mb-2">出来事</h4>
-                  <p className="text-gray-600 text-sm font-jp-normal leading-relaxed break-words whitespace-pre-wrap">
-                    {highlightText(entry.event, searchValue)}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-jp-semibold text-gray-700 mb-2">気づき</h4>
-                  <p className="text-gray-600 text-sm font-jp-normal leading-relaxed break-words whitespace-pre-wrap">
-                    {highlightText(entry.realization, searchValue)}
-                  </p>
-                </div>
-              </div>
-              
-              {/* カウンセラーコメント表示（表示設定がtrueの場合のみ） */}
-              {(entry.is_visible_to_user || entry.isVisibleToUser) && (entry.counselor_memo || entry.counselorMemo) && (
-                <div className="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-start space-x-2 mb-2">
-                    <span className="text-sm font-jp-bold text-blue-700">
-                      {entry.counselor_name || entry.counselorName || 'カウンセラー'}からのコメント
-                    </span>
-                  </div>
-                  <p className="text-blue-800 text-sm font-jp-normal leading-relaxed break-words whitespace-pre-wrap">
-                    {entry.counselor_memo || entry.counselorMemo}
-                  </p>
-                </div>
-              )}
-
-              {(entry.emotion === '無価値感' || 
-                entry.emotion === '嬉しい' || 
-                entry.emotion === '感謝' || 
-                entry.emotion === '達成感' || 
-                entry.emotion === '幸せ') && (
-                <div className="flex flex-wrap gap-2 sm:gap-6 text-xs bg-white rounded-lg p-2 border border-gray-200">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-500 font-jp-medium">自己肯定感:</span>
-                    <span className="font-jp-semibold text-blue-600">
-                      {entry.selfEsteemScore || 50}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-500 font-jp-medium">無価値感:</span>
-                    <span className="font-jp-semibold text-red-600">
-                      {entry.worthlessnessScore || 50}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 編集モーダル */}
-      {renderEditModal()}
-      
-      {/* ローカル保存モード表示 */}
-      <div className="fixed bottom-4 right-4 bg-green-100 border border-green-200 rounded-lg p-3 shadow-lg">
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-green-800 font-jp-medium text-sm">
-            {currentUser?.lineUsername || 'ゲスト'}のデータ
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default DiarySearchPage;
+              {filteredEntries.map((entry) => (
+                <div key={entry.id} className={`rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${
+                  entry.emotion === '恐怖' ? 'bg-purple-50' :
+                  entry.emotion === '悲しみ' ? 'bg-blue-50' :
+                  entry.emotion === '怒り' ? 'bg-red-50' :
+                  entry.emotion === '悔しい' ? 'bg-green-50' :
+                  entry.emotion === '無価値感' ? 'bg-gray-50' :
+                  entry.emotion === '罪悪感' ? 'bg-orange-50' :
+                  entry.emotion === '寂しさ' ? 'bg-indigo-50' :
+                  entry.emotion === '恥ずかしさ' ? 'bg-pink-50' :
+                  entry.emotion === '嬉しい' ? 'bg-yellow-50' :
+                  entry.emotion === '感謝' ? 'bg-teal-50' :
+                  entry.emotion === '達成感' ? 'bg-lime-50' :
+                  entry.emotion === '幸せ' ? 'bg-amber-50' :
+                  'bg-white'
+                }`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
+                      <span className={`px-3 py-1 rounded-full text-sm font-jp-medium border ${getEmotionColor(entry.emotion)}`}>
                         {entry.emotion}
                       </span>
-                      {entry.date && (
-                        <span className="text-gray-500 text-xs sm:text-sm font-jp-normal">
-                          {formatDate(entry.date)}
-                        </span>
-                      )}
+                      <span className="text-gray-500 text-xs sm:text-sm font-jp-normal">
+                        {formatDate(entry.date)}
+                      </span>
                     </div>
                     <div className="flex space-x-2">
                       <button 
@@ -974,30 +869,30 @@ export default DiarySearchPage;
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <h4 className="font-jp-semibold text-gray-700 mb-1 text-sm">出来事</h4>
-                      <p className="text-gray-600 text-xs sm:text-sm font-jp-normal leading-relaxed break-words">
-                        {entry.event}
+                      <h4 className="font-jp-semibold text-gray-700 mb-2">出来事</h4>
+                      <p className="text-gray-600 text-sm font-jp-normal leading-relaxed break-words whitespace-pre-wrap">
+                        {highlightText(entry.event, searchValue)}
                       </p>
                     </div>
                     <div>
-                      <h4 className="font-jp-semibold text-gray-700 mb-1 text-sm">気づき</h4>
-                      <p className="text-gray-600 text-xs sm:text-sm font-jp-normal leading-relaxed break-words">
-                        {entry.realization}
+                      <h4 className="font-jp-semibold text-gray-700 mb-2">気づき</h4>
+                      <p className="text-gray-600 text-sm font-jp-normal leading-relaxed break-words whitespace-pre-wrap">
+                        {highlightText(entry.realization, searchValue)}
                       </p>
                     </div>
                   </div>
                   
                   {/* カウンセラーコメント表示（表示設定がtrueの場合のみ） */}
                   {(entry.is_visible_to_user || entry.isVisibleToUser) && (entry.counselor_memo || entry.counselorMemo) && (
-                    <div className="mt-3 bg-blue-50 rounded-lg p-3 border border-blue-200">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-xs font-jp-medium text-blue-700 break-words">
+                    <div className="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
+                      <div className="flex items-start space-x-2 mb-2">
+                        <span className="text-sm font-jp-bold text-blue-700">
                           {entry.counselor_name || entry.counselorName || 'カウンセラー'}からのコメント
                         </span>
                       </div>
-                      <p className="text-blue-800 text-sm font-jp-normal leading-relaxed break-words">
+                      <p className="text-blue-800 text-sm font-jp-normal leading-relaxed break-words whitespace-pre-wrap">
                         {entry.counselor_memo || entry.counselorMemo}
                       </p>
                     </div>
@@ -1026,8 +921,27 @@ export default DiarySearchPage;
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        )}
+      </div>
+
+      {/* 編集モーダル */}
+      {renderEditModal()}
+      
+      {/* ローカル保存モード表示 */}
+      <div className="fixed bottom-4 right-4 bg-green-100 border border-green-200 rounded-lg p-3 shadow-lg">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span className="text-green-800 font-jp-medium text-sm">
+            {currentUser?.lineUsername || 'ゲスト'}のデータ
+          </span>
         </div>
+      </div>
+    </div>
+  );
+};
+
+export default DiarySearchPage;
       )}
 
       {/* 検索結果エリア */}
