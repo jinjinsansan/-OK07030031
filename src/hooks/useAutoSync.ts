@@ -122,6 +122,7 @@ export const useAutoSync = (): AutoSyncState => {
     try {
       // 重複チェック用のマップをリセット（手動同期の場合）
       setProcessedEntryMap(new Map());
+      setProcessedEntryIds(new Set());
       
       // 現在のユーザーを取得
       const user = getCurrentUser();
@@ -178,7 +179,7 @@ export const useAutoSync = (): AutoSyncState => {
       // ローカルストレージから日記データを取得
       const savedEntries = localStorage.getItem('journalEntries');
       if (!savedEntries) {
-        console.log('同期する日記データがありません');
+        console.log('同期するデータがありません: journalEntriesが存在しません');
         setLastSyncTime(new Date().toISOString());
         localStorage.setItem('last_sync_time', new Date().toISOString());
         return true;
@@ -187,7 +188,7 @@ export const useAutoSync = (): AutoSyncState => {
       let entries;
       try {
         entries = JSON.parse(savedEntries);
-        if (!Array.isArray(entries)) {
+        if (!entries || !Array.isArray(entries)) {
           console.error('日記データが配列ではありません:', entries);
           setError('日記データの形式が正しくありません');
           return false;
@@ -200,7 +201,7 @@ export const useAutoSync = (): AutoSyncState => {
       
       // 空の配列の場合は同期をスキップ
       if (!entries || entries.length === 0) {
-        console.log('同期する日記データがありません');
+        console.log('同期するデータがありません: 空の配列です');
         const now = new Date().toISOString();
         setLastSyncTime(now);
         localStorage.setItem('last_sync_time', now);
@@ -210,8 +211,8 @@ export const useAutoSync = (): AutoSyncState => {
      // 既に処理済みのエントリーIDを取得
      const currentProcessedIds = new Set(processedEntryIds);
      
-     // 重複チェック用のマップを作成
-     const entryMap = new Map<string, boolean>();
+     // 重複チェック用のマップ
+     const entryMap = new Map();
      
      // 無効なUUIDを修正する関数
      const fixInvalidUuid = (id: string): string => {
@@ -245,16 +246,26 @@ export const useAutoSync = (): AutoSyncState => {
      
      // エントリーをフィルタリングして無効なIDを修正
      const newEntries = entries.filter((entry: any) => {
-       // 必須フィールドの検証
-       if (!entry || !entry.id || !entry.date || !entry.emotion) {
-         console.warn('無効なエントリーをスキップ:', entry);
+       // 基本的な検証
+       if (!entry || !entry.id) {
+         console.warn('無効なエントリーをスキップします (IDなし):', entry);
+         return false;
+       }
+       
+       if (!entry.date) {
+         console.warn('無効なエントリーをスキップします (日付なし):', entry.id);
+         return false;
+       }
+       
+       if (!entry.emotion) {
+         console.warn('無効なエントリーをスキップします (感情なし):', entry.id);
          return false;
        }
        
        // 重複チェック用のキーを作成（日付+感情+内容の先頭50文字）
        const key = `${entry.date}_${entry.emotion}_${entry.event.substring(0, 50)}`;
        
-       // 既に同じキーが存在する場合は重複とみなす
+       // 重複チェック
        if (processedEntryMap.has(key) || entryMap.has(key)) {
          console.log('重複エントリーをスキップ:', key);
          return false;
@@ -262,6 +273,7 @@ export const useAutoSync = (): AutoSyncState => {
        
        // 処理済みIDに含まれている場合もスキップ
        if (currentProcessedIds.has(entry.id)) {
+         console.log('既に処理済みのエントリーをスキップ:', entry.id);
          return false;
        }
        
@@ -271,7 +283,7 @@ export const useAutoSync = (): AutoSyncState => {
      });
      
      if (newEntries.length === 0) {
-       console.log('新しい同期対象のデータがありません。すべてのエントリーは既に同期されています。');
+       console.log('同期するデータがありません: フィルタリング後のエントリーが0件です');
        const now = new Date().toISOString();
        setLastSyncTime(now);
        localStorage.setItem('last_sync_time', now);
@@ -281,10 +293,7 @@ export const useAutoSync = (): AutoSyncState => {
      console.log('同期する日記データ:', newEntries.length, '件（全', entries.length, '件中、重複除外後）', 'ユーザーID:', userId);
 
       // 各エントリーをSupabase形式に変換
-     const formattedEntries = newEntries.filter((entry: any) => {
-        return true; // 既にフィルタリング済み
-      })
-      .map((entry: any) => {          
+     const formattedEntries = newEntries.map((entry: any) => {          
         // 無効なUUIDを修正（元のIDを保持）
         let entryId = entry.id;
         // UUIDの検証
@@ -293,7 +302,8 @@ export const useAutoSync = (): AutoSyncState => {
           // 無効なIDの場合は新しいUUIDを生成
           entryId = crypto.randomUUID ? crypto.randomUUID() : 
             'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-              const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+              const r = Math.random() * 16 | 0;
+              const v = c === 'x' ? r : (r & 0x3 | 0x8);
               return v.toString(16);
             });
           console.log(`無効なID "${entry.id}" を新しいID "${entryId}" に置き換えました`);
@@ -302,7 +312,7 @@ export const useAutoSync = (): AutoSyncState => {
         // 必須フィールドを含め、NULL値を適切に処理
         const formattedEntry: any = {
           id: entryId, // 修正したIDを使用
-          user_id: userId, // 常に現在のユーザーIDを使用
+          user_id: userId, // 現在のユーザーIDを使用
           date: entry.date || new Date().toISOString().split('T')[0],
           emotion: entry.emotion || '不明',
           event: entry.event || '', // 空文字列をデフォルト値に
@@ -313,7 +323,7 @@ export const useAutoSync = (): AutoSyncState => {
           // スコアフィールドの処理
           if (entry.emotion === '無価値感' || 
               entry.emotion === '嬉しい' || 
-              entry.emotion === '感謝' || 
+              entry.emotion === '感謝' ||
               entry.emotion === '達成感' || 
               entry.emotion === '幸せ') {
             
@@ -334,7 +344,7 @@ export const useAutoSync = (): AutoSyncState => {
           // オプションフィールドは存在する場合のみ追加
           const optionalFields: any = {
             assigned_counselor: entry.assigned_counselor || entry.assignedCounselor || '',
-            urgency_level: entry.urgency_level || entry.urgencyLevel || '',
+            urgency_level: '',
             is_visible_to_user: entry.is_visible_to_user !== undefined ? !!entry.is_visible_to_user : 
                                (entry.isVisibleToUser !== undefined ? !!entry.isVisibleToUser : false),
             counselor_name: entry.counselor_name || entry.counselorName || '',
@@ -348,13 +358,12 @@ export const useAutoSync = (): AutoSyncState => {
           formattedEntry.counselor_name = optionalFields.counselor_name;
           formattedEntry.counselor_memo = optionalFields.counselor_memo;
           
-          // 緊急度の値を検証して修正
-          if (formattedEntry.urgency_level) {
-            if (formattedEntry.urgency_level !== '' && 
-                !['high', 'medium', 'low'].includes(formattedEntry.urgency_level)) {
-              console.warn(`無効な緊急度の値: ${formattedEntry.urgency_level}、空に設定します`);
-              formattedEntry.urgency_level = '';
-            }
+          // 緊急度の値を設定（安全のため常に空文字列）
+          if (entry.urgency_level === 'high' || entry.urgency_level === 'medium' || entry.urgency_level === 'low' ||
+              entry.urgencyLevel === 'high' || entry.urgencyLevel === 'medium' || entry.urgencyLevel === 'low') {
+            formattedEntry.urgency_level = entry.urgency_level || entry.urgencyLevel;
+          } else {
+            formattedEntry.urgency_level = '';
           }
           
           return formattedEntry;
@@ -363,8 +372,8 @@ export const useAutoSync = (): AutoSyncState => {
       // 日記データを同期
       const { success, error } = await diaryService.syncDiaries(userId, formattedEntries);
       
-      if (!success) {
-        console.error('同期エラー:', error);
+      // 同期結果をログに出力
+      console.log('同期結果:', success ? '✅ 成功' : '❌ 失敗', error || '', 'データ件数:', formattedEntries.length);
         throw new Error(error);
       }
       
@@ -378,10 +387,6 @@ export const useAutoSync = (): AutoSyncState => {
      });
      setProcessedEntryIds(currentProcessedIds);
      setProcessedEntryMap(new Map([...processedEntryMap, ...entryMap]));
-     
-      // 同期時間を更新
-      const now = new Date().toISOString();
-      setLastSyncTime(now);
       localStorage.setItem('last_sync_time', now);
       
       console.log('データ同期完了:', newEntries.length, '件', 'ユーザーID:', userId, '時刻:', now, '同期されたデータ:', formattedEntries.slice(0, 1));

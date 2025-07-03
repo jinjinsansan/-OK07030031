@@ -60,13 +60,13 @@ export const diaryService = {
   // 日記の同期
   async syncDiaries(userId: string, diaries: any[]) {
     if (!supabase) {
-      console.log('ローカルモードで動作中: Supabase接続なし、同期をスキップします');
+      console.log('ローカルモードで動作中: Supabase接続なし、同期をスキップします', diaries?.length || 0);
       return { success: true, error: null };
     }
     
     try {
       // 日記データの検証
-      const validDiaries = diaries.filter(entry => {
+      const validDiaries = diaries?.filter(entry => {
         try {
           // 必須フィールドの検証
           if (!entry || !entry.id || !entry.date || !entry.emotion) {
@@ -77,9 +77,14 @@ export const diaryService = {
           // UUIDの検証
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(entry.id)) {
-            console.warn(`無効なUUID形式のID: ${entry.id}`);
-            // 無効なIDはスキップ
-            return false;
+            console.warn(`無効なUUID形式のID: ${entry.id} - 新しいUUIDを生成します`);
+            // 無効なIDの場合は新しいUUIDを生成
+            entry.id = crypto.randomUUID ? crypto.randomUUID() : 
+              'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+              });
+            console.log(`新しいUUID: ${entry.id}`);
           }
           
           // スコアフィールドの検証
@@ -107,7 +112,7 @@ export const diaryService = {
       });
       
       // 空の文字列をデフォルト値に設定
-      validDiaries.forEach(entry => {
+      validDiaries?.forEach(entry => {
         entry.event = entry.event || '';
         entry.realization = entry.realization || '';
         entry.counselor_memo = entry.counselor_memo || '';
@@ -116,12 +121,12 @@ export const diaryService = {
         entry.is_visible_to_user = entry.is_visible_to_user === undefined ? false : entry.is_visible_to_user;
       });
       
-      if (validDiaries.length === 0) {
+      if (!validDiaries || validDiaries.length === 0) {
         console.log('有効な日記データがありません');
         return { success: true, error: null };
       }
       
-      console.log(`${validDiaries.length}件の有効な日記データを同期します`);
+      console.log(`${validDiaries?.length || 0}件の有効な日記データを同期します`);
       
       // 日記データをSupabaseに同期
       // 一度に同期するエントリー数を制限（100件ずつ）
@@ -129,7 +134,7 @@ export const diaryService = {
       let success = true;
       let error = null;
       
-      for (let i = 0; i < validDiaries.length; i += chunkSize) {
+      for (let i = 0; i < validDiaries?.length; i += chunkSize) {
         const chunk = validDiaries.slice(i, i + chunkSize);
         try {
           const { error: chunkError } = await supabase
@@ -142,7 +147,12 @@ export const diaryService = {
           if (chunkError) {
             console.error(`チャンク同期エラー (${i}~${i+chunk.length-1})`, chunkError);
             success = false;
-            error = chunkError.message;
+            error = chunkError.message || 'チャンク同期エラー';
+            
+            // エラーの詳細をログに出力
+            console.log('エラーの詳細:', chunkError.details || 'なし');
+            console.log('エラーのヒント:', chunkError.hint || 'なし');
+            console.log('エラーのコード:', chunkError.code || 'なし');
           }
         } catch (chunkErr) {
           console.error(`チャンク処理エラー (${i}~${i+chunk.length-1})`, chunkErr);
@@ -152,11 +162,11 @@ export const diaryService = {
       }
       
       if (!success) {
-        console.error('日記同期エラー:', error);
+        console.error('日記同期エラー:', error, '同期対象データ:', validDiaries?.length || 0);
         return { success: false, error };
       }
       
-      return { success: true, error: null };
+      return { success: true, error: null, count: validDiaries?.length || 0 };
     } catch (error) {
       console.error('日記同期エラー:', error);
       return { 
@@ -277,7 +287,7 @@ export const syncService = {
   // 同意履歴の同期
   async syncConsentHistories() {
     if (!supabase) return false;
-    
+
     try {
       // ローカルストレージから同意履歴を取得
       const savedHistories = localStorage.getItem('consent_histories');
@@ -285,7 +295,7 @@ export const syncService = {
       
       const histories = JSON.parse(savedHistories);
       if (!Array.isArray(histories) || histories.length === 0) return true;
-      
+
       // Supabaseに同期
       const { error } = await supabase
         .from('consent_histories')
@@ -293,12 +303,12 @@ export const syncService = {
           onConflict: 'id',
           ignoreDuplicates: false
         });
-      
+
       if (error) {
         console.error('同意履歴同期エラー:', error);
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('同意履歴同期エラー:', error);
@@ -309,24 +319,24 @@ export const syncService = {
   // 同意履歴をローカルに同期
   async syncConsentHistoriesToLocal() {
     if (!supabase) return false;
-    
+
     try {
       // Supabaseから同意履歴を取得
       const { data, error } = await supabase
         .from('consent_histories')
         .select('*')
         .order('consent_date', { ascending: false });
-      
+
       if (error) {
         console.error('同意履歴取得エラー:', error);
         return false;
       }
-      
+
       if (data) {
         // ローカルストレージに保存
         localStorage.setItem('consent_histories', JSON.stringify(data));
       }
-      
+
       return true;
     } catch (error) {
       console.error('同意履歴同期エラー:', error);
