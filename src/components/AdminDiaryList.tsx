@@ -47,8 +47,18 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
 
   useEffect(() => {
-    // 表示対象のエントリーを設定
-    setEntries(allEntries);
+    console.log('[AdminDiaryList] allEntries change', allEntries.map(e => ({ id: e.id, user_id: e.user_id })));
+    // 管理者モードでない場合は、可視性の制限を適用
+    if (!adminMode) {
+      const visibleEntries = allEntries
+        // 管理者モードでない場合は、可視性の制限を適用
+        .filter(e => e.is_visible_to_user || e.isVisibleToUser)
+        // syncStatusが空でも通す
+        .filter(e => !e.syncStatus || e.syncStatus === 'supabase');
+      setEntries(visibleEntries);
+    } else {
+      setEntries(allEntries);
+    }
     
     // 管理者モードでない場合は、可視性の制限を適用
     if (!adminMode) {
