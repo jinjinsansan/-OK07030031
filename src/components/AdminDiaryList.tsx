@@ -31,9 +31,40 @@ interface DiaryEntry {
   syncStatus?: string;
 }
 
+interface DiaryEntry {
+  id: string;
+  date: string;
+  emotion: string;
+  event: string;
+  realization: string;
+  self_esteem_score?: number;
+  selfEsteemScore?: number;
+  worthlessness_score?: number;
+  worthlessnessScore?: number;
+  created_at: string;
+  user?: {
+    line_username: string;
+  };
+  users?: {
+    line_username: string;
+  };
+  assigned_counselor?: string;
+  assignedCounselor?: string;
+  urgency_level?: 'high' | 'medium' | 'low';
+  urgencyLevel?: 'high' | 'medium' | 'low';
+  counselor_memo?: string;
+  counselorMemo?: string;
+  is_visible_to_user?: boolean;
+  isVisibleToUser?: boolean;
+  counselor_name?: string;
+  counselorName?: string;
+  syncStatus?: string;
+}
+
 interface AdminDiaryListProps {
   allEntries: DiaryEntry[];
   onViewEntry: (entry: DiaryEntry) => void;
+  adminMode?: boolean;
   adminMode?: boolean;
   onDeleteEntry?: (entryId: string) => void;
 }
@@ -41,6 +72,7 @@ interface AdminDiaryListProps {
 const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   allEntries,
   onViewEntry,
+  adminMode = true,
   adminMode = true,
   onDeleteEntry
 }) => {
