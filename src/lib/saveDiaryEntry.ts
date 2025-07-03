@@ -42,9 +42,9 @@ export async function saveDiaryEntry(entry) {
     all.unshift(entry);
     
     // ローカルストレージに保存
-    await localStorage.setItem('journalEntries', JSON.stringify(all));
+    localStorage.setItem('journalEntries', JSON.stringify(all));
     /* ---💬 追加ログ -------- */
-    const test = await localStorage.getItem('journalEntries');
+    const test = localStorage.getItem('journalEntries');
     console.log(
       test ? `🟢 saved (${JSON.parse(test).length})` : '🔴 save FAILED',
       test ? JSON.parse(test)[0] : null
