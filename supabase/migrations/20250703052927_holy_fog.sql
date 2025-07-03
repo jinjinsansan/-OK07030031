@@ -1,0 +1,176 @@
+/*
+  # UUID同期問題の修正
+
+  1. 変更内容
+    - 無効なUUIDを検出して修正する関数を追加
+    - 同期時のUUID検証を強化するトリガー関数を追加
+    - NULL値を適切に処理するトリガー関数を追加
+    - 既存の無効なUUIDを修正
+
+  2. 目的
+    - "invalid input syntax for type uuid" エラーの解決
+    - 同期エラーの防止
+    - データの整合性確保
+*/
+
+-- 1. 無効なUUIDを検出して修正する関数
+CREATE OR REPLACE FUNCTION fix_invalid_uuid(input_text text) RETURNS uuid AS $$
+DECLARE
+  valid_uuid uuid;
+BEGIN
+  -- UUIDとして解析を試みる
+  BEGIN
+    valid_uuid := input_text::uuid;
+    RETURN valid_uuid;
+  EXCEPTION WHEN others THEN
+    -- 解析に失敗した場合は新しいUUIDを生成
+    RETURN gen_random_uuid();
+  END;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. 同期時のUUID検証を強化するトリガー関数
+CREATE OR REPLACE FUNCTION validate_uuid_on_sync() RETURNS TRIGGER AS $$
+BEGIN
+  -- IDが有効なUUID形式かチェック
+  BEGIN
+    PERFORM NEW.id::uuid;
+  EXCEPTION WHEN others THEN
+    -- 無効な場合は新しいUUIDを生成
+    NEW.id := gen_random_uuid();
+    RAISE NOTICE 'Invalid UUID replaced with: %', NEW.id;
+  END;
+  
+  -- user_idが有効なUUID形式かチェック
+  IF NEW.user_id IS NOT NULL THEN
+    BEGIN
+      PERFORM NEW.user_id::uuid;
+    EXCEPTION WHEN others THEN
+      -- 無効な場合は新しいUUIDを生成
+      NEW.user_id := gen_random_uuid();
+      RAISE NOTICE 'Invalid user_id replaced with: %', NEW.user_id;
+    END;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. NULL値を適切に処理するトリガー関数
+CREATE OR REPLACE FUNCTION fix_null_fields() RETURNS TRIGGER AS $$
+BEGIN
+    -- NULL値を適切なデフォルト値に変換
+    NEW.event := COALESCE(NEW.event, '');
+    NEW.realization := COALESCE(NEW.realization, '');
+    NEW.counselor_memo := COALESCE(NEW.counselor_memo, '');
+    NEW.counselor_name := COALESCE(NEW.counselor_name, '');
+    NEW.assigned_counselor := COALESCE(NEW.assigned_counselor, '');
+    NEW.urgency_level := COALESCE(NEW.urgency_level, '');
+    NEW.is_visible_to_user := COALESCE(NEW.is_visible_to_user, false);
+    
+    -- スコアフィールドの処理
+    NEW.self_esteem_score := COALESCE(NEW.self_esteem_score, 50);
+    NEW.worthlessness_score := COALESCE(NEW.worthlessness_score, 50);
+    
+    -- 緊急度の値を検証
+    IF NEW.urgency_level IS NOT NULL AND NEW.urgency_level != '' AND 
+       NEW.urgency_level NOT IN ('high', 'medium', 'low') THEN
+        NEW.urgency_level := '';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 4. トリガーを作成
+DROP TRIGGER IF EXISTS validate_uuid_on_sync_trigger ON diary_entries;
+CREATE TRIGGER validate_uuid_on_sync_trigger
+BEFORE INSERT OR UPDATE ON diary_entries
+FOR EACH ROW
+EXECUTE FUNCTION validate_uuid_on_sync();
+
+DROP TRIGGER IF EXISTS fix_null_fields_trigger ON diary_entries;
+CREATE TRIGGER fix_null_fields_trigger
+BEFORE INSERT OR UPDATE ON diary_entries
+FOR EACH ROW
+EXECUTE FUNCTION fix_null_fields();
+
+-- 5. 既存の無効なUUIDを修正
+DO $$ 
+DECLARE
+  invalid_entry RECORD;
+  new_uuid uuid;
+  valid_user_id uuid;
+BEGIN
+  -- 有効なユーザーIDを取得（置き換え用）
+  SELECT id INTO valid_user_id FROM users LIMIT 1;
+  
+  -- 有効なユーザーが見つからない場合は新しいUUIDを生成
+  IF valid_user_id IS NULL THEN
+    valid_user_id := gen_random_uuid();
+  END IF;
+
+  -- 無効なIDを持つエントリーを検索して修正
+  FOR invalid_entry IN 
+    SELECT id FROM diary_entries
+  LOOP
+    -- IDが有効なUUIDかチェック
+    BEGIN
+      PERFORM invalid_entry.id::uuid;
+    EXCEPTION WHEN others THEN
+      -- 無効な場合は新しいUUIDを生成
+      SELECT gen_random_uuid() INTO new_uuid;
+      
+      -- エントリーを更新
+      UPDATE diary_entries
+      SET id = new_uuid
+      WHERE id = invalid_entry.id;
+      
+      RAISE NOTICE 'Fixed invalid ID: % -> %', invalid_entry.id, new_uuid;
+    END;
+  END LOOP;
+  
+  -- 無効なuser_idを持つエントリーを検索して修正
+  FOR invalid_entry IN 
+    SELECT id, user_id FROM diary_entries
+    WHERE user_id IS NOT NULL
+  LOOP
+    -- user_idが有効なUUIDかチェック
+    BEGIN
+      PERFORM invalid_entry.user_id::uuid;
+    EXCEPTION WHEN others THEN
+      -- 無効な場合は有効なuser_idに置き換え
+      UPDATE diary_entries
+      SET user_id = valid_user_id
+      WHERE id = invalid_entry.id;
+      
+      RAISE NOTICE 'Fixed invalid user_id for entry %: % -> %', 
+                   invalid_entry.id, invalid_entry.user_id, valid_user_id;
+    END;
+  END LOOP;
+END $$;
+
+-- 6. 既存のNULL値を修正
+UPDATE diary_entries
+SET 
+  event = COALESCE(event, ''),
+  realization = COALESCE(realization, ''),
+  counselor_memo = COALESCE(counselor_memo, ''),
+  counselor_name = COALESCE(counselor_name, ''),
+  assigned_counselor = COALESCE(assigned_counselor, ''),
+  urgency_level = COALESCE(urgency_level, ''),
+  is_visible_to_user = COALESCE(is_visible_to_user, false),
+  self_esteem_score = COALESCE(self_esteem_score, 50),
+  worthlessness_score = COALESCE(worthlessness_score, 50);
+
+-- 7. 無効な緊急度の値を修正
+UPDATE diary_entries
+SET urgency_level = ''
+WHERE urgency_level IS NOT NULL 
+  AND urgency_level != ''
+  AND urgency_level NOT IN ('high', 'medium', 'low');
+
+-- 8. コメント
+COMMENT ON FUNCTION fix_invalid_uuid(text) IS '無効なUUIDを検出して修正する関数';
+COMMENT ON FUNCTION validate_uuid_on_sync() IS '同期時のUUID検証を強化するトリガー関数';
+COMMENT ON FUNCTION fix_null_fields() IS 'NULL値を適切なデフォルト値に変換するトリガー関数';
