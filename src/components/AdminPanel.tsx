@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Calendar, Search, Filter, RefreshCw, User, Shield, Database, Download, Trash2, Eye, Edit3, AlertTriangle, CheckCircle, Clock, MessageCircle, Users, BookOpen, BarChart2, Settings, Save, FileText, Layers, Upload } from 'lucide-react';
 import AdvancedSearchFilter from './AdvancedSearchFilter';
@@ -9,6 +9,7 @@ import ConsentHistoryManagement from './ConsentHistoryManagement';
 import DeviceAuthManagement from './DeviceAuthManagement';
 import SecurityDashboard from './SecurityDashboard';
 import DataCleanup from './DataCleanup';
+import CalendarSearch from './CalendarSearch';
 import CalendarSearch from './CalendarSearch';
 
 const AdminPanel: React.FC = () => {
@@ -32,6 +33,7 @@ const AdminPanel: React.FC = () => {
     urgencyLevel: '' 
   });
   const [backupData, setBackupData] = useState<File | null>(null);
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(true);
   const [restoring, setRestoring] = useState(false);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ const AdminPanel: React.FC = () => {
     }
   }, []);
 
-  const loadEntries = async () => {
+  const loadEntries = useCallback(async () => {
     setLoading(true);
     
     try {
@@ -150,7 +152,7 @@ const AdminPanel: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleViewEntry = (entry: any) => {
     setSelectedEntry(entry);
@@ -809,7 +811,7 @@ const AdminPanel: React.FC = () => {
               <h2 className="text-xl font-jp-bold text-gray-900 mb-6 flex items-center">
                 <BookOpen className="w-5 h-5 text-blue-600 mr-2" />
                 日記一覧
-              </h2>
+              </h2> 
               <AdminDiaryList 
                 allEntries={entries} 
                 onViewEntry={handleViewEntry}
@@ -827,6 +829,7 @@ const AdminPanel: React.FC = () => {
               <AdvancedSearchFilter 
                 entries={entries} 
                 onFilteredResults={handleFilteredResults} 
+                adminMode={isAdminMode}
                 onViewEntry={handleViewEntry}
                 onDeleteEntry={handleDeleteEntry}
               />

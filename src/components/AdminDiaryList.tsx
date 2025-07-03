@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Eye, Trash2, Calendar, User, Tag, AlertTriangle } from 'lucide-react';
 
 interface DiaryEntry {
@@ -34,12 +34,14 @@ interface DiaryEntry {
 interface AdminDiaryListProps {
   allEntries: DiaryEntry[];
   onViewEntry: (entry: DiaryEntry) => void;
+  adminMode?: boolean;
   onDeleteEntry?: (entryId: string) => void;
 }
 
 const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   allEntries,
   onViewEntry,
+  adminMode = true,
   onDeleteEntry
 }) => {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -47,7 +49,17 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   useEffect(() => {
     // 表示対象のエントリーを設定
     setEntries(allEntries);
-  }, [allEntries]);
+    
+    // 管理者モードでない場合は、可視性の制限を適用
+    if (!adminMode) {
+      const visibleEntries = allEntries
+        // 管理者モードでない場合は、可視性の制限を適用
+        .filter(e => e.is_visible_to_user || e.isVisibleToUser)
+        // syncStatusが空でも通す
+        .filter(e => !e.syncStatus || e.syncStatus === 'supabase');
+      setEntries(visibleEntries);
+    }
+  }, [allEntries, adminMode]);
 
   const getEmotionColor = (emotion: string) => {
     const colorMap: { [key: string]: string } = {
@@ -62,7 +74,7 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
       '恥ずかしさ': 'bg-pink-50',
       // ポジティブな感情
       '嬉しい': 'bg-yellow-50',
-      '感謝': 'bg-teal-50',
+      '感謝': 'bg-teal-50', 
       '達成感': 'bg-lime-50',
       '幸せ': 'bg-amber-50'
     };
@@ -155,7 +167,7 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
         <div className="space-y-4">
           {entries.map((entry) => (
             <div 
-              key={entry.id} 
+              key={entry.id}
               className={`border ${getEmotionBorderColor(entry.emotion)} rounded-lg p-4 hover:shadow-md transition-shadow ${getEmotionColor(entry.emotion)}`}
             >
               <div className="flex justify-between items-start mb-3">

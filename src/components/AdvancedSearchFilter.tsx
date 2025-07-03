@@ -51,6 +51,7 @@ interface JournalEntry {
 interface AdvancedSearchFilterProps {
   entries: JournalEntry[];
   onFilteredResults: (filtered: JournalEntry[]) => void;
+  adminMode?: boolean;
   onViewEntry: (entry: JournalEntry) => void; 
   onDeleteEntry?: (entryId: string) => void;
 }
@@ -58,6 +59,7 @@ interface AdvancedSearchFilterProps {
 const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
   entries,
   onFilteredResults,
+  adminMode = true,
   onViewEntry,
   onDeleteEntry
 }) => {
@@ -84,7 +86,7 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>(entries);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [showSaveSearch, setShowSaveSearch] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
@@ -110,7 +112,7 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
   // 初期化時にエントリーを設定
   useEffect(() => {
     setLoading(false);
-    setFilteredEntries(entries);
+    setFilteredEntries(entries.filter(entry => adminMode || entry.is_visible_to_user || entry.isVisibleToUser));
   }, [entries]);
 
   // 管理者モードの場合はSupabaseから検索
