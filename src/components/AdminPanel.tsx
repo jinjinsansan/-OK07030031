@@ -61,7 +61,7 @@ const AdminPanel: React.FC = () => {
         try {
           console.log('Supabaseから日記データを取得します');
           const { data: diaryData, error } = await window.supabase
-            .from('diary_entries')
+            .from('counselor_diary_view')
             .select(`
               *,
               users (
@@ -261,7 +261,7 @@ const AdminPanel: React.FC = () => {
       // Supabaseからの削除（自動同期機能を使用）
       if (window.autoSync && typeof window.autoSync.syncDeleteDiary === 'function') {
         const syncResult = await window.autoSync.syncDeleteDiary(entryId);
-        console.log('削除同期結果:', syncResult ? '成功' : '失敗');
+        console.log('削除同期結果:', syncResult ? '成功' : '失敗', 'ID:', entryId);
       }
 
       setSelectedEntry(null);

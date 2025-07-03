@@ -52,7 +52,7 @@ const CalendarSearch: React.FC<CalendarSearchProps> = ({ onViewEntry, onDeleteEn
       if (supabase) {
         try {
           const { data: diaryData, error } = await supabase
-            .from('diary_entries')
+            .from('counselor_diary_view')
             .select(`
               *,
               users (
