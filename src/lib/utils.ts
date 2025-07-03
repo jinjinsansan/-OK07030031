@@ -120,12 +120,9 @@ export function formatDiaryForLocal(supabaseEntry: any) {
     realization: supabaseEntry.realization,
     selfEsteemScore: supabaseEntry.self_esteem_score || 0,
     worthlessnessScore: supabaseEntry.worthlessness_score || 0,
-    counselor_memo: supabaseEntry.counselor_memo || null, 
-    assigned_counselor: diaryEntry.assigned_counselor || diaryEntry.assignedCounselor || '',
-    // urgency_levelは'high', 'medium', 'low'または空文字列のみ許可
-    urgency_level: (diaryEntry.urgency_level || diaryEntry.urgencyLevel || '') !== '' && 
-                  ['high', 'medium', 'low'].includes(diaryEntry.urgency_level || diaryEntry.urgencyLevel || '') ? 
-                  (diaryEntry.urgency_level || diaryEntry.urgencyLevel) : '',
+    counselor_memo: supabaseEntry.counselor_memo || '', 
+    is_visible_to_user: supabaseEntry.is_visible_to_user || false,
+    counselor_name: supabaseEntry.counselor_name || '',
     assigned_counselor: supabaseEntry.assigned_counselor || null,
     urgency_level: supabaseEntry.urgency_level || null,
     created_at: supabaseEntry.created_at || new Date().toISOString(),
