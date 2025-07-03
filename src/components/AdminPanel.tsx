@@ -10,7 +10,6 @@ import DeviceAuthManagement from './DeviceAuthManagement';
 import SecurityDashboard from './SecurityDashboard';
 import DataCleanup from './DataCleanup';
 import CalendarSearch from './CalendarSearch';
-import CalendarSearch from './CalendarSearch';
 
 const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('search');
