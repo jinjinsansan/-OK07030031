@@ -68,14 +68,14 @@ export const diaryService = {
       // 日記データの検証
       const validDiaries = diaries?.filter(entry => {
         try {
-          // 必須フィールドの検証
-          if (!entry || !entry.id || !entry.date || !entry.emotion) {
-            console.warn('無効なエントリーをスキップ:', entry);
+          // 基本的な検証
+          if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event) {
+            console.warn('無効なエントリーをスキップします:', entry);
             return false;
           }
           
           // UUIDの検証
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(entry.id)) {
             console.warn(`無効なUUID形式のID: ${entry.id} - 新しいUUIDを生成します`);
             // 無効なIDの場合は新しいUUIDを生成
@@ -90,12 +90,12 @@ export const diaryService = {
           // スコアフィールドの検証
           if (entry.self_esteem_score === null || entry.self_esteem_score === undefined) {
             entry.self_esteem_score = 50;
-            console.log('NULL self_esteem_score を 50 に設定:', entry.id);
+            console.log(`NULL self_esteem_score を 50 に設定: ${entry.id}`);
           }
           
           if (entry.worthlessness_score === null || entry.worthlessness_score === undefined) {
             entry.worthlessness_score = 50;
-            console.log('NULL worthlessness_score を 50 に設定:', entry.id);
+            console.log(`NULL worthlessness_score を 50 に設定: ${entry.id}`);
           }
           
           // urgency_levelの検証
@@ -114,7 +114,7 @@ export const diaryService = {
       // 空の文字列をデフォルト値に設定
       validDiaries?.forEach(entry => {
         entry.event = entry.event || '';
-        entry.realization = entry.realization || '';
+        entry.realization = entry.realization || ''; 
         entry.counselor_memo = entry.counselor_memo || '';
         entry.counselor_name = entry.counselor_name || '';
         entry.assigned_counselor = entry.assigned_counselor || '';
@@ -123,10 +123,10 @@ export const diaryService = {
       
       if (!validDiaries || validDiaries.length === 0) {
         console.log('有効な日記データがありません');
-        return { success: true, error: null };
+        return { success: true, error: null, count: 0 };
       }
       
-      console.log(`${validDiaries?.length || 0}件の有効な日記データを同期します`);
+      console.log(`${validDiaries.length}件の有効な日記データを同期します`);
       
       // 日記データをSupabaseに同期
       // 一度に同期するエントリー数を制限（100件ずつ）
@@ -163,10 +163,10 @@ export const diaryService = {
       
       if (!success) {
         console.error('日記同期エラー:', error, '同期対象データ:', validDiaries?.length || 0);
-        return { success: false, error };
+        return { success: false, error, count: 0 };
       }
       
-      return { success: true, error: null, count: validDiaries?.length || 0 };
+      return { success: true, error: null, count: validDiaries.length };
     } catch (error) {
       console.error('日記同期エラー:', error);
       return { 

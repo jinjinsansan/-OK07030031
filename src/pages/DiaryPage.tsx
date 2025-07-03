@@ -253,7 +253,7 @@ const DiaryPage: React.FC = () => {
       // 現在のユーザー名を取得
       const user = getCurrentUser();
       const username = user?.lineUsername || localStorage.getItem('line-username') || 'Unknown User';
-      
+
       // 無価値感またはポジティブ感情を選んだ場合はスコアを追加
       let selfEsteemScore, worthlessnessScore;
       if (formData.emotion === '無価値感' || 
@@ -279,9 +279,9 @@ const DiaryPage: React.FC = () => {
         created_at: new Date().toISOString(),
         urgency_level: null,
         assigned_counselor: null,
-        counselor_memo: null,
+        counselor_memo: '',
         is_visible_to_user: false,
-        counselor_name: null
+        counselor_name: ''
       };
       
       // 新しい保存関数を使用
