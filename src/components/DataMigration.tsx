@@ -43,7 +43,7 @@ const DataMigration: React.FC = () => {
   const handleManualSync = async () => {
     if (!isConnected) {
       if (window.confirm('Supabaseに接続されていません。再接続を試みますか？')) {
-        retryConnection();
+        await retryConnection();
         // 再接続後に接続状態を確認
         if (!isConnected) {
           alert('Supabaseへの接続に失敗しました。ネットワーク接続を確認してください。');
@@ -59,7 +59,7 @@ const DataMigration: React.FC = () => {
     
     try {
       // 現在のユーザーを取得
-      let user = getCurrentUser();
+      const user = getCurrentUser();
       
       // ユーザー名を取得（ローカルストレージから）
       const lineUsername = localStorage.getItem('line-username');
@@ -74,7 +74,9 @@ const DataMigration: React.FC = () => {
       // ユーザーIDを取得または作成
       let userId;
       
-      if (currentUser && currentUser.id && currentUser.id !== 'local-user') {
+      if (currentUser && currentUser.id && typeof currentUser.id === 'string' && 
+          currentUser.id !== 'local-user' && 
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(currentUser.id)) {
         userId = currentUser.id;
         console.log('既存のユーザーIDを使用:', userId);
       } else {
@@ -104,18 +106,8 @@ const DataMigration: React.FC = () => {
       setMigrationStatus('ローカルデータを読み込み中...');
       setMigrationProgress(50);
       let savedEntries = localStorage.getItem('journalEntries');
-      try {
-        if (!savedEntries || savedEntries === '[]') {
-          setMigrationStatus('同期するデータがありません');
-          setMigrationProgress(100);
-          setTimeout(() => {
-            setMigrationStatus(null);
-            setMigrationProgress(0);
-          }, 3000);
-          return;
-        }
-      } catch (error) {
-        console.error('ローカルデータ取得エラー:', error);
+      
+      if (!savedEntries || savedEntries === '[]') {
         setMigrationStatus('同期するデータがありません');
         setMigrationProgress(100);
         setTimeout(() => {
@@ -141,53 +133,64 @@ const DataMigration: React.FC = () => {
       // 日記データをSupabase形式に変換
       const formattedEntries = entries.filter((entry: any) => {
         if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event) {
-          console.warn('無効なエントリーをスキップ:', entry);
-            return false;
+          console.warn('無効なエントリーをスキップします:', entry);
+          return false;
+        }
+        
+        // UUIDの検証
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(entry.id)) {
+          console.warn(`無効なUUID形式のID: ${entry.id} - このエントリーは修正が必要です`);
+          // 無効なIDは自動同期機能で修正されるため、ここではスキップ
+          return false;
+        }
+        
+        return true;
+      });
+      
+      // 無効なデータをフィルタリングした後、残ったエントリーを変換
+      const processedEntries = formattedEntries.map((entry: any) => {
+        // 必須フィールドのみを含める
+        const formattedEntry = {
+          id: entry.id,
+          user_id: userId,
+          date: entry.date,
+          emotion: entry.emotion,
+          event: entry.event || '',
+          realization: entry.realization || '',
+          self_esteem_score: typeof entry.selfEsteemScore === 'number' ? entry.selfEsteemScore : 
+                            (typeof entry.selfEsteemScore === 'string' ? parseInt(entry.selfEsteemScore) : 
+                             (typeof entry.self_esteem_score === 'number' ? entry.self_esteem_score : 
+                              (typeof entry.self_esteem_score === 'string' ? parseInt(entry.self_esteem_score) : 50))),
+          worthlessness_score: typeof entry.worthlessnessScore === 'number' ? entry.worthlessnessScore : 
+                              (typeof entry.worthlessnessScore === 'string' ? parseInt(entry.worthlessnessScore) : 
+                               (typeof entry.worthlessness_score === 'number' ? entry.worthlessness_score : 
+                                (typeof entry.worthlessness_score === 'string' ? parseInt(entry.worthlessness_score) : 50))),
+          created_at: entry.created_at || new Date().toISOString()
+        };
+        
+        // オプションフィールドは存在する場合のみ追加
+        const optionalFields = {
+          assigned_counselor: entry.assigned_counselor || entry.assignedCounselor || '',
+          urgency_level: entry.urgency_level || entry.urgencyLevel || '',
+          is_visible_to_user: entry.is_visible_to_user !== undefined ? entry.is_visible_to_user : 
+                             (entry.isVisibleToUser !== undefined ? entry.isVisibleToUser : false),
+          counselor_name: entry.counselor_name || entry.counselorName || '',
+          counselor_memo: entry.counselor_memo || entry.counselorMemo || ''
+        };
+        
+        // 値が存在するフィールドのみを追加
+        for (const [key, value] of Object.entries(optionalFields)) {
+          if (value !== undefined) {
+            formattedEntry[key] = value;
           }
-          return true;
-        }) // 無効なデータをフィルタリング
-        .map((entry: any) => {
-          // 必須フィールドのみを含める
-          const formattedEntry = {
-            id: entry.id,
-            user_id: userId,
-            date: entry.date,
-            emotion: entry.emotion,
-            event: entry.event || '',
-            realization: entry.realization || '',
-            self_esteem_score: typeof entry.selfEsteemScore === 'number' ? entry.selfEsteemScore : 
-                              (typeof entry.selfEsteemScore === 'string' ? parseInt(entry.selfEsteemScore) : 
-                               (typeof entry.self_esteem_score === 'number' ? entry.self_esteem_score : 
-                                (typeof entry.self_esteem_score === 'string' ? parseInt(entry.self_esteem_score) : 50))),
-            worthlessness_score: typeof entry.worthlessnessScore === 'number' ? entry.worthlessnessScore : 
-                                (typeof entry.worthlessnessScore === 'string' ? parseInt(entry.worthlessnessScore) : 
-                                 (typeof entry.worthlessness_score === 'number' ? entry.worthlessness_score : 
-                                  (typeof entry.worthlessness_score === 'string' ? parseInt(entry.worthlessness_score) : 50))),
-            created_at: entry.created_at || new Date().toISOString()
-          };
-          
-          // オプションフィールドは存在する場合のみ追加
-          const optionalFields = {
-            assigned_counselor: entry.assigned_counselor || entry.assignedCounselor || null,
-            urgency_level: entry.urgency_level || entry.urgencyLevel || null,
-            is_visible_to_user: entry.is_visible_to_user !== undefined ? entry.is_visible_to_user : 
-                               (entry.isVisibleToUser !== undefined ? entry.isVisibleToUser : false),
-            counselor_name: entry.counselor_name || entry.counselorName || null,
-            counselor_memo: entry.counselor_memo || entry.counselorMemo || null
-          };
-          
-          // 値が存在するフィールドのみを追加
-          for (const [key, value] of Object.entries(optionalFields)) {
-            if (value !== undefined) {
-              formattedEntry[key] = value;
-            }
-          }
-          
-          return formattedEntry;
-        });
+        }
+        
+        return formattedEntry;
+      });
       
       // 所有者列(user_id, username)を送らないようにサニタイズ
-      const sanitized = formattedEntries.map(({ user_id, username, ...rest }) => rest);
+      const sanitized = processedEntries.map(({ user_id, username, ...rest }) => rest);
       
       console.log('同期するデータ:', sanitized.length, '件');
       
@@ -207,11 +210,13 @@ const DataMigration: React.FC = () => {
       setMigrationStatus(`同期が完了しました！${entries.length}件のデータを同期しました。`);
       setMigrationProgress(100);
       
-      // データ数を再読み込み
-      loadDataInfo();
+      // 少し遅延してからデータ数を再読み込み
+      setTimeout(() => {
+        loadDataInfo();
+      }, 1000);
       
       // 成功メッセージを表示
-      alert(`同期が完了しました！${entries.length}件のデータを同期しました。`);
+      alert(`同期が完了しました！${sanitized.length}件のデータを同期しました。`);
       
       // 自動同期を有効化
       localStorage.setItem('auto_sync_enabled', 'true');

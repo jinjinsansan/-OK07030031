@@ -67,30 +67,43 @@ export const diaryService = {
     try {
       // 日記データの検証
       const validDiaries = diaries.filter(entry => {
-        // 必須フィールドの検証
-        if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event) {
-          console.warn('無効なエントリーをスキップ:', entry);
+        try {
+          // 必須フィールドの検証
+          if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event) {
+            console.warn('無効なエントリーをスキップ:', entry);
+            return false;
+          }
+          
+          // UUIDの検証
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(entry.id)) {
+            console.warn(`無効なUUID形式のID: ${entry.id}`);
+            // 無効なIDはスキップ
+            return false;
+          }
+          
+          // スコアフィールドの検証
+          if (entry.self_esteem_score === null || entry.self_esteem_score === undefined) {
+            entry.self_esteem_score = 50;
+            console.log('NULL self_esteem_score を 50 に設定:', entry.id);
+          }
+          
+          if (entry.worthlessness_score === null || entry.worthlessness_score === undefined) {
+            entry.worthlessness_score = 50;
+            console.log('NULL worthlessness_score を 50 に設定:', entry.id);
+          }
+          
+          // urgency_levelの検証
+          if (entry.urgency_level && entry.urgency_level !== '' && 
+              !['high', 'medium', 'low'].includes(entry.urgency_level)) {
+            entry.urgency_level = '';
+          }
+          
+          return true;
+        } catch (error) {
+          console.error('エントリー検証エラー:', error, 'エントリー:', entry);
           return false;
         }
-        
-        // スコアフィールドの検証
-        if (entry.self_esteem_score === null || entry.self_esteem_score === undefined) {
-          entry.self_esteem_score = 50;
-          console.log('NULL self_esteem_score を 50 に設定:', entry.id);
-        }
-        
-        if (entry.worthlessness_score === null || entry.worthlessness_score === undefined) {
-          entry.worthlessness_score = 50;
-          console.log('NULL worthlessness_score を 50 に設定:', entry.id);
-        }
-        
-        // urgency_levelの検証
-        if (entry.urgency_level && entry.urgency_level !== '' && 
-            !['high', 'medium', 'low'].includes(entry.urgency_level)) {
-          entry.urgency_level = '';
-        }
-        
-        return true;
       });
       
       // 空の文字列をデフォルト値に設定
@@ -113,13 +126,10 @@ export const diaryService = {
       // 日記データをSupabaseに同期
       const { error } = await supabase
         .from('diary_entries')
-        .upsert(
-          validDiaries, 
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false // 重複エラーを無視しない
-          }
-        );
+        .upsert(validDiaries, {
+          onConflict: 'id',
+          ignoreDuplicates: false // 重複エラーを無視しない
+        });
       
       if (error) {
         console.error('日記同期エラー:', error);

@@ -215,18 +215,24 @@ export const useAutoSync = (): AutoSyncState => {
      
      // 無効なUUIDを修正する関数
      const fixInvalidUuid = (id: string): string => {
-       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+       // 厳密なUUIDの正規表現パターン
+       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
        if (!uuidRegex.test(id)) {
+         console.warn(`無効なUUID形式を検出: ${id}`);
          try {
            // crypto.randomUUID()が利用可能な場合はそれを使用
            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-             return crypto.randomUUID();
+             const newUuid = crypto.randomUUID();
+             console.log(`無効なUUID "${id}" を新しいUUID "${newUuid}" に置き換えました`);
+             return newUuid;
            } else {
              // 代替の方法でUUIDを生成
-             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+             const newUuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
                return v.toString(16);
              });
+             console.log(`無効なUUID "${id}" を新しいUUID "${newUuid}" に置き換えました`);
+             return newUuid;
            }
          } catch (error) {
            console.error('UUID生成エラー:', error);
@@ -239,6 +245,12 @@ export const useAutoSync = (): AutoSyncState => {
      
      // エントリーをフィルタリングして無効なIDを修正
      const newEntries = entries.filter((entry: any) => {
+       // 必須フィールドの検証
+       if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event || !entry.realization) {
+         console.warn('無効なエントリーをスキップ:', entry);
+         return false;
+       }
+       
        // 重複チェック用のキーを作成（日付+感情+内容の先頭50文字）
        const key = `${entry.date}_${entry.emotion}_${entry.event.substring(0, 50)}`;
        
@@ -270,34 +282,27 @@ export const useAutoSync = (): AutoSyncState => {
 
       // 各エントリーをSupabase形式に変換
      const formattedEntries = newEntries.filter((entry: any) => {
-        if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event || !entry.realization) {
-          console.warn('無効なエントリーをスキップ:', entry);
-            return false;
-          }
-          return true;
-        }) // 無効なデータをフィルタリング
-        .map((entry: any) => {          
-          // 無効なUUIDを修正
-          const entryId = fixInvalidUuid(entry.id);
-          if (entryId !== entry.id) {
-            console.log(`無効なID "${entry.id}" を新しいID "${entryId}" に置き換えました`);
-          }
+        return true; // 既にフィルタリング済み
+      })
+      .map((entry: any) => {          
+        // 無効なUUIDを修正
+        const entryId = fixInvalidUuid(entry.id);
           
-          // 必須フィールドを含め、NULL値を適切に処理
-          const formattedEntry: any = {
-            id: entryId, // 修正したIDを使用
-            user_id: userId, // 常に現在のユーザーIDを使用
-            date: entry.date || new Date().toISOString().split('T')[0],
-            emotion: entry.emotion || '不明',
-            event: entry.event || '', // 空文字列をデフォルト値に
-            realization: entry.realization || '', // 空文字列をデフォルト値に
-            created_at: entry.created_at || new Date().toISOString()
-          };
+        // 必須フィールドを含め、NULL値を適切に処理
+        const formattedEntry: any = {
+          id: entryId, // 修正したIDを使用
+          user_id: userId, // 常に現在のユーザーIDを使用
+          date: entry.date || new Date().toISOString().split('T')[0],
+          emotion: entry.emotion || '不明',
+          event: entry.event || '', // 空文字列をデフォルト値に
+          realization: entry.realization || '', // 空文字列をデフォルト値に
+          created_at: entry.created_at || new Date().toISOString()
+        };
           
           // スコアフィールドの処理
           if (entry.emotion === '無価値感' || 
               entry.emotion === '嬉しい' || 
-              entry.emotion === '感謝' ||
+              entry.emotion === '感謝' || 
               entry.emotion === '達成感' || 
               entry.emotion === '幸せ') {
             
@@ -318,10 +323,7 @@ export const useAutoSync = (): AutoSyncState => {
           // オプションフィールドは存在する場合のみ追加
           const optionalFields: any = {
             assigned_counselor: entry.assigned_counselor || entry.assignedCounselor || '',
-            // urgency_levelは'high', 'medium', 'low'または空文字列のみ許可
-            urgency_level: (entry.urgency_level || entry.urgencyLevel || '') !== '' && 
-                          ['high', 'medium', 'low'].includes(entry.urgency_level || entry.urgencyLevel || '') ? 
-                          (entry.urgency_level || entry.urgencyLevel) : '',
+            urgency_level: entry.urgency_level || entry.urgencyLevel || '',
             is_visible_to_user: entry.is_visible_to_user !== undefined ? !!entry.is_visible_to_user : 
                                (entry.isVisibleToUser !== undefined ? !!entry.isVisibleToUser : false),
             counselor_name: entry.counselor_name || entry.counselorName || '',
@@ -334,6 +336,14 @@ export const useAutoSync = (): AutoSyncState => {
           formattedEntry.is_visible_to_user = optionalFields.is_visible_to_user;
           formattedEntry.counselor_name = optionalFields.counselor_name;
           formattedEntry.counselor_memo = optionalFields.counselor_memo;
+          
+          // urgency_levelの値を検証
+          if (formattedEntry.urgency_level && 
+              formattedEntry.urgency_level !== '' && 
+              !['high', 'medium', 'low'].includes(formattedEntry.urgency_level)) {
+            console.warn(`無効な緊急度の値: ${formattedEntry.urgency_level}、空に設定します`);
+            formattedEntry.urgency_level = '';
+          }
           
           return formattedEntry;
         });
