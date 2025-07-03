@@ -383,19 +383,19 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
   const getEmotionColor = (emotion: string) => {
     const colorMap: { [key: string]: string } = {
       // ネガティブな感情
-      '恐怖': 'bg-purple-100 text-purple-800 border-purple-200',
-      '悲しみ': 'bg-blue-100 text-blue-800 border-blue-200',
-      '怒り': 'bg-red-100 text-red-800 border-red-200',
-      '悔しい': 'bg-green-100 text-green-800 border-green-200',
-      '無価値感': 'bg-gray-100 text-gray-800 border-gray-300',
-      '罪悪感': 'bg-orange-100 text-orange-800 border-orange-200',
-      '寂しさ': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      '恥ずかしさ': 'bg-pink-100 text-pink-800 border-pink-200',
+      '恐怖': 'bg-purple-50 text-purple-800 border-purple-200',
+      '悲しみ': 'bg-blue-50 text-blue-800 border-blue-200',
+      '怒り': 'bg-red-50 text-red-800 border-red-200',
+      '悔しい': 'bg-green-50 text-green-800 border-green-200',
+      '無価値感': 'bg-gray-50 text-gray-800 border-gray-300',
+      '罪悪感': 'bg-orange-50 text-orange-800 border-orange-200',
+      '寂しさ': 'bg-indigo-50 text-indigo-800 border-indigo-200',
+      '恥ずかしさ': 'bg-pink-50 text-pink-800 border-pink-200',
       // ポジティブな感情
-      '嬉しい': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      '感謝': 'bg-teal-100 text-teal-800 border-teal-200',
-      '達成感': 'bg-lime-100 text-lime-800 border-lime-200',
-      '幸せ': 'bg-amber-100 text-amber-800 border-amber-200'
+      '嬉しい': 'bg-yellow-50 text-yellow-800 border-yellow-200',
+      '感謝': 'bg-teal-50 text-teal-800 border-teal-200',
+      '達成感': 'bg-lime-50 text-lime-800 border-lime-200',
+      '幸せ': 'bg-amber-50 text-amber-800 border-amber-200'
     };
     return colorMap[emotion] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
