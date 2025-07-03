@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Trash2, Calendar, User, Tag } from 'lucide-react';
+import { Eye, Trash2, Calendar, User, Tag, AlertTriangle } from 'lucide-react';
 
 interface DiaryEntry {
   id: string;
@@ -42,31 +42,51 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   onViewEntry,
   onDeleteEntry
 }) => {
-  const [visibleEntries, setVisibleEntries] = useState<DiaryEntry[]>([]);
+  const [entries, setEntries] = useState<DiaryEntry[]>([]);
 
   useEffect(() => {
-    // 表示対象のエントリーをフィルタリング
-    const visibleEntries =
-      allEntries
-        .filter(e => e.is_visible_to_user)
-        .filter(e => !e.syncStatus || e.syncStatus === 'supabase');
-    
-    setVisibleEntries(visibleEntries);
+    // 表示対象のエントリーを設定
+    setEntries(allEntries);
   }, [allEntries]);
 
-  const emotionColor: Record<string, string> = {
-    '恐怖':       'bg-violet-100',
-    '怒り':       'bg-red-100',
-    '無価値感':   'bg-gray-100',
-    '悲しみ':     'bg-blue-100',
-    '悔しい':     'bg-green-100',
-    '罪悪感':     'bg-orange-100',
-    '寂しさ':     'bg-indigo-100',
-    '恥ずかしさ': 'bg-pink-100',
-    '嬉しい':     'bg-yellow-100',
-    '感謝':       'bg-teal-100',
-    '達成感':     'bg-lime-100',
-    '幸せ':       'bg-amber-100',
+  const getEmotionColor = (emotion: string) => {
+    const colorMap: { [key: string]: string } = {
+      // ネガティブな感情
+      '恐怖': 'bg-purple-50',
+      '悲しみ': 'bg-blue-50',
+      '怒り': 'bg-red-50',
+      '悔しい': 'bg-green-50',
+      '無価値感': 'bg-gray-50',
+      '罪悪感': 'bg-orange-50',
+      '寂しさ': 'bg-indigo-50',
+      '恥ずかしさ': 'bg-pink-50',
+      // ポジティブな感情
+      '嬉しい': 'bg-yellow-50',
+      '感謝': 'bg-teal-50',
+      '達成感': 'bg-lime-50',
+      '幸せ': 'bg-amber-50'
+    };
+    return colorMap[emotion] || 'bg-white';
+  };
+
+  const getEmotionBorderColor = (emotion: string) => {
+    const colorMap: { [key: string]: string } = {
+      // ネガティブな感情
+      '恐怖': 'border-purple-200',
+      '悲しみ': 'border-blue-200',
+      '怒り': 'border-red-200',
+      '悔しい': 'border-green-200',
+      '無価値感': 'border-gray-300',
+      '罪悪感': 'border-orange-200',
+      '寂しさ': 'border-indigo-200',
+      '恥ずかしさ': 'border-pink-200',
+      // ポジティブな感情
+      '嬉しい': 'border-yellow-200',
+      '感謝': 'border-teal-200',
+      '達成感': 'border-lime-200',
+      '幸せ': 'border-amber-200'
+    };
+    return colorMap[emotion] || 'border-gray-200';
   };
 
   const formatDate = (dateString: string) => {
@@ -101,30 +121,43 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
 
   return (
     <div className="space-y-4">
-      {visibleEntries.length === 0 ? (
+      {entries.length === 0 ? (
         <div className="text-center py-8">
           <div className="text-4xl mb-4">📝</div>
           <h3 className="text-lg font-jp-medium text-gray-500 mb-2">
-            表示可能な日記がありません
+            日記がありません
           </h3>
           <p className="text-gray-400 font-jp-normal">
-            カウンセラーコメントを表示設定にした日記がここに表示されます
+            日記が作成されるとここに表示されます
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {visibleEntries.map((entry) => (
-            <div key={entry.id} className={`rounded-xl p-6 shadow ${emotionColor[entry.emotion] ?? 'bg-white'}`}>
+          {entries.map((entry) => (
+            <div 
+              key={entry.id} 
+              className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${getEmotionColor(entry.emotion)}`}
+            >
               <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center space-x-2 flex-wrap">
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
                   <span className="text-sm font-jp-medium text-gray-900">{formatDate(entry.date)}</span>
-                  <span className="px-3 py-1 rounded-full text-xs font-jp-medium border border-gray-200 bg-white">
+                  <span className={`px-2 py-1 rounded-full text-xs font-jp-medium border ${getEmotionBorderColor(entry.emotion)}`}>
                     {entry.emotion}
                   </span>
+                  {entry.syncStatus && (
+                    <span className={`px-2 py-1 rounded-full text-xs font-jp-medium ${
+                      entry.syncStatus === 'supabase' 
+                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                        : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                    }`}>
+                      {entry.syncStatus === 'supabase' ? 'Supabase' : 'ローカル'}
+                    </span>
+                  )}
                   {(entry.urgency_level || entry.urgencyLevel) && (
-                    <span className={`px-2 py-1 rounded-full text-xs font-jp-medium border ${
+                    <span className={`px-2 py-1 rounded-full text-xs font-jp-medium ${
                       getUrgencyLevelColor(entry.urgency_level || entry.urgencyLevel)
                     }`}>
+                      <AlertTriangle className="w-3 h-3 inline mr-1" />
                       {getUrgencyLevelText(entry.urgency_level || entry.urgencyLevel)}
                     </span>
                   )}
@@ -136,59 +169,56 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
                       {entry.user?.line_username || entry.users?.line_username}
                     </span>
                   )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                <div>
-                  <h4 className="font-jp-semibold text-gray-700 mb-1 text-sm">出来事</h4>
-                  <p className="text-gray-600 text-xs sm:text-sm font-jp-normal leading-relaxed break-words">
-                    {entry.event}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-jp-semibold text-gray-700 mb-1 text-sm">気づき</h4>
-                  <p className="text-gray-600 text-xs sm:text-sm font-jp-normal leading-relaxed break-words">
-                    {entry.realization}
-                  </p>
-                </div>
-              </div>
-              
-              {/* カウンセラーコメント */}
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 mb-3">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-xs font-jp-medium text-blue-700 break-words">
-                    {entry.counselor_name || entry.counselorName || 'カウンセラー'}からのコメント
-                  </span>
-                </div>
-                <p className="text-blue-800 text-sm font-jp-normal leading-relaxed break-words">
-                  {entry.counselor_memo || entry.counselorMemo}
-                </p>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <div className="text-xs text-gray-500">
-                  {(entry.assignedCounselor || entry.assigned_counselor) ?
-                    `担当: ${entry.assignedCounselor || entry.assigned_counselor}` :
-                    '未割り当て'}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => onViewEntry(entry)}
-                    className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
-                    title="詳細を見る"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  {onDeleteEntry && (
-                    <button
-                      onClick={() => onDeleteEntry(entry.id)}
-                      className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
-                      title="削除"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  {(entry.self_esteem_score || entry.selfEsteemScore || entry.worthlessness_score || entry.worthlessnessScore) && (
+                    <div className="flex items-center space-x-1 text-xs text-gray-500">
+                      <Tag className="w-3 h-3" />
+                      <span>自己肯定感: {entry.self_esteem_score || entry.selfEsteemScore || 'N/A'}</span>
+                      <span>無価値感: {entry.worthlessness_score || entry.worthlessnessScore || 'N/A'}</span>
+                    </div>
                   )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <span className="text-sm font-jp-medium text-gray-700">出来事: </span>
+                  <span className="text-sm text-gray-900 font-jp-normal">{entry.event}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-jp-medium text-gray-700">気づき: </span>
+                  <span className="text-sm text-gray-900 font-jp-normal">{entry.realization}</span>
+                </div>
+                {(entry.counselor_memo || entry.counselorMemo) && (
+                  <div className="bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
+                    <span className="text-sm font-jp-medium text-gray-700">カウンセラーメモ: </span>
+                    <span className="text-sm text-gray-900 font-jp-normal">{entry.counselor_memo || entry.counselorMemo}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center mt-3 pt-3 border-t">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500 font-jp-normal">
+                    {entry.assigned_counselor || entry.assignedCounselor || '未割り当て'}
+                  </span>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => onViewEntry(entry)}
+                      className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
+                      title="詳細を見る"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    {onDeleteEntry && (
+                      <button
+                        onClick={() => onDeleteEntry(entry.id)}
+                        className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
+                        title="削除"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
