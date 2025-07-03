@@ -68,7 +68,7 @@ export const diaryService = {
       // 日記データの検証
       const validDiaries = diaries.filter(entry => {
         // 必須フィールドの検証
-        if (!entry || !entry.id || !entry.date || !entry.emotion) {
+        if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event) {
           console.warn('無効なエントリーをスキップ:', entry);
           return false;
         }
@@ -113,10 +113,13 @@ export const diaryService = {
       // 日記データをSupabaseに同期
       const { error } = await supabase
         .from('diary_entries')
-        .upsert(validDiaries, {
-          onConflict: 'id',
-          ignoreDuplicates: true // 重複エラーを無視
-        });
+        .upsert(
+          validDiaries, 
+          {
+            onConflict: 'id',
+            ignoreDuplicates: false // 重複エラーを無視しない
+          }
+        );
       
       if (error) {
         console.error('日記同期エラー:', error);

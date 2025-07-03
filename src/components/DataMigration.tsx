@@ -43,7 +43,7 @@ const DataMigration: React.FC = () => {
   const handleManualSync = async () => {
     if (!isConnected) {
       if (window.confirm('Supabaseに接続されていません。再接続を試みますか？')) {
-        await retryConnection();
+        retryConnection();
         // 再接続後に接続状態を確認
         if (!isConnected) {
           alert('Supabaseへの接続に失敗しました。ネットワーク接続を確認してください。');
@@ -59,7 +59,7 @@ const DataMigration: React.FC = () => {
     
     try {
       // 現在のユーザーを取得
-      const user = getCurrentUser();
+      let user = getCurrentUser();
       
       // ユーザー名を取得（ローカルストレージから）
       const lineUsername = localStorage.getItem('line-username');
@@ -74,7 +74,7 @@ const DataMigration: React.FC = () => {
       // ユーザーIDを取得または作成
       let userId;
       
-      if (currentUser && currentUser.id) {
+      if (currentUser && currentUser.id && currentUser.id !== 'local-user') {
         userId = currentUser.id;
         console.log('既存のユーザーIDを使用:', userId);
       } else {
@@ -103,9 +103,8 @@ const DataMigration: React.FC = () => {
       // ローカルストレージから日記データを取得
       setMigrationStatus('ローカルデータを読み込み中...');
       setMigrationProgress(50);
-      let savedEntries;
+      let savedEntries = localStorage.getItem('journalEntries');
       try {
-        savedEntries = localStorage.getItem('journalEntries');
         if (!savedEntries || savedEntries === '[]') {
           setMigrationStatus('同期するデータがありません');
           setMigrationProgress(100);
@@ -141,7 +140,7 @@ const DataMigration: React.FC = () => {
       
       // 日記データをSupabase形式に変換
       const formattedEntries = entries.filter((entry: any) => {
-        if (!entry || !entry.id || !entry.date || !entry.emotion) {
+        if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event) {
           console.warn('無効なエントリーをスキップ:', entry);
             return false;
           }
@@ -189,6 +188,8 @@ const DataMigration: React.FC = () => {
       
       // 所有者列(user_id, username)を送らないようにサニタイズ
       const sanitized = formattedEntries.map(({ user_id, username, ...rest }) => rest);
+      
+      console.log('同期するデータ:', sanitized.length, '件');
       
       // 日記データを同期
       const { success, error } = await diaryService.syncDiaries(userId, sanitized);
