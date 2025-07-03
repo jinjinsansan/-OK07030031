@@ -69,13 +69,13 @@ export const diaryService = {
       const validDiaries = diaries.filter(entry => {
         try {
           // 必須フィールドの検証
-          if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event) {
+          if (!entry || !entry.id || !entry.date || !entry.emotion) {
             console.warn('無効なエントリーをスキップ:', entry);
             return false;
           }
           
           // UUIDの検証
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(entry.id)) {
             console.warn(`無効なUUID形式のID: ${entry.id}`);
             // 無効なIDはスキップ
@@ -124,19 +124,39 @@ export const diaryService = {
       console.log(`${validDiaries.length}件の有効な日記データを同期します`);
       
       // 日記データをSupabaseに同期
-      const { error } = await supabase
-        .from('diary_entries')
-        .upsert(validDiaries, {
-          onConflict: 'id',
-          ignoreDuplicates: false // 重複エラーを無視しない
-        });
+      // 一度に同期するエントリー数を制限（100件ずつ）
+      const chunkSize = 100;
+      let success = true;
+      let error = null;
       
-      if (error) {
-        console.error('日記同期エラー:', error);
-        return { success: false, error: error.message };
+      for (let i = 0; i < validDiaries.length; i += chunkSize) {
+        const chunk = validDiaries.slice(i, i + chunkSize);
+        try {
+          const { error: chunkError } = await supabase
+            .from('diary_entries')
+            .upsert(chunk, {
+              onConflict: 'id',
+              ignoreDuplicates: false // 重複エラーを無視しない
+            });
+          
+          if (chunkError) {
+            console.error(`チャンク同期エラー (${i}~${i+chunk.length-1})`, chunkError);
+            success = false;
+            error = chunkError.message;
+          }
+        } catch (chunkErr) {
+          console.error(`チャンク処理エラー (${i}~${i+chunk.length-1})`, chunkErr);
+          success = false;
+          error = chunkErr instanceof Error ? chunkErr.message : '不明なエラー';
+        }
       }
       
-      return { success: true };
+      if (!success) {
+        console.error('日記同期エラー:', error);
+        return { success: false, error };
+      }
+      
+      return { success: true, error: null };
     } catch (error) {
       console.error('日記同期エラー:', error);
       return { 

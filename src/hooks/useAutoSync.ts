@@ -215,8 +215,8 @@ export const useAutoSync = (): AutoSyncState => {
      
      // 無効なUUIDを修正する関数
      const fixInvalidUuid = (id: string): string => {
-       // 厳密なUUIDの正規表現パターン
-       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+       // 緩やかなUUIDの正規表現パターン（形式が近ければ許容）
+       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
        if (!uuidRegex.test(id)) {
          console.warn(`無効なUUID形式を検出: ${id}`);
          try {
@@ -246,7 +246,7 @@ export const useAutoSync = (): AutoSyncState => {
      // エントリーをフィルタリングして無効なIDを修正
      const newEntries = entries.filter((entry: any) => {
        // 必須フィールドの検証
-       if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event || !entry.realization) {
+       if (!entry || !entry.id || !entry.date || !entry.emotion) {
          console.warn('無効なエントリーをスキップ:', entry);
          return false;
        }
@@ -285,8 +285,19 @@ export const useAutoSync = (): AutoSyncState => {
         return true; // 既にフィルタリング済み
       })
       .map((entry: any) => {          
-        // 無効なUUIDを修正
-        const entryId = fixInvalidUuid(entry.id);
+        // 無効なUUIDを修正（元のIDを保持）
+        let entryId = entry.id;
+        // UUIDの検証
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(entryId)) {
+          // 無効なIDの場合は新しいUUIDを生成
+          entryId = crypto.randomUUID ? crypto.randomUUID() : 
+            'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+              const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
+          console.log(`無効なID "${entry.id}" を新しいID "${entryId}" に置き換えました`);
+        }
           
         // 必須フィールドを含め、NULL値を適切に処理
         const formattedEntry: any = {
@@ -337,12 +348,13 @@ export const useAutoSync = (): AutoSyncState => {
           formattedEntry.counselor_name = optionalFields.counselor_name;
           formattedEntry.counselor_memo = optionalFields.counselor_memo;
           
-          // urgency_levelの値を検証
-          if (formattedEntry.urgency_level && 
-              formattedEntry.urgency_level !== '' && 
-              !['high', 'medium', 'low'].includes(formattedEntry.urgency_level)) {
-            console.warn(`無効な緊急度の値: ${formattedEntry.urgency_level}、空に設定します`);
-            formattedEntry.urgency_level = '';
+          // 緊急度の値を検証して修正
+          if (formattedEntry.urgency_level) {
+            if (formattedEntry.urgency_level !== '' && 
+                !['high', 'medium', 'low'].includes(formattedEntry.urgency_level)) {
+              console.warn(`無効な緊急度の値: ${formattedEntry.urgency_level}、空に設定します`);
+              formattedEntry.urgency_level = '';
+            }
           }
           
           return formattedEntry;
