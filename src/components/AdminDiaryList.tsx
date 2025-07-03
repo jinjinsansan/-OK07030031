@@ -49,15 +49,7 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   useEffect(() => {
     console.log('[AdminDiaryList] allEntries change', allEntries.length);
     setEntries(allEntries);
-  }, [allEntries, adminMode]);
-
-  const getEmotionColor = (emotion: string) => {
-    const colorMap: { [key: string]: string } = {
-      // ネガティブな感情
-      '恐怖': 'bg-purple-50',
-      '悲しみ': 'bg-blue-50',
-      '怒り': 'bg-red-50',
-      '悔しい': 'bg-green-50',
+  }, [allEntries]);
       '無価値感': 'bg-gray-50',
       '罪悪感': 'bg-orange-50',
       '寂しさ': 'bg-indigo-50',
