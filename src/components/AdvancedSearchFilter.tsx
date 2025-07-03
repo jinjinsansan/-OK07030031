@@ -84,7 +84,7 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>(entries);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [showSaveSearch, setShowSaveSearch] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
@@ -109,6 +109,7 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
 
   // 初期化時にエントリーを設定
   useEffect(() => {
+    setLoading(false);
     setFilteredEntries(entries);
   }, [entries]);
 
@@ -674,116 +675,16 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
         </div>
 
         {filteredEntries.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 font-jp-normal">検索条件に一致する日記が見つかりませんでした。</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredEntries.map((entry) => (
-              <div key={entry.id} className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${
-                entry.emotion === '恐怖' ? 'bg-purple-50' :
-                entry.emotion === '悲しみ' ? 'bg-blue-50' :
-                entry.emotion === '怒り' ? 'bg-red-50' :
-                entry.emotion === '悔しい' ? 'bg-green-50' :
-                entry.emotion === '無価値感' ? 'bg-gray-50' :
-                entry.emotion === '罪悪感' ? 'bg-orange-50' :
-                entry.emotion === '寂しさ' ? 'bg-indigo-50' :
-                entry.emotion === '恥ずかしさ' ? 'bg-pink-50' :
-                entry.emotion === '嬉しい' ? 'bg-yellow-50' :
-                entry.emotion === '感謝' ? 'bg-teal-50' :
-                entry.emotion === '達成感' ? 'bg-lime-50' :
-                entry.emotion === '幸せ' ? 'bg-amber-50' :
-                'bg-white'
-              }`}>
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-sm font-jp-medium text-gray-900">{entry.date}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-jp-medium border ${getEmotionColor(entry.emotion)}`}>
-                      {entry.emotion}
-                    </span>
-                    {entry.syncStatus && (
-                      <span className={`px-2 py-1 rounded-full text-xs font-jp-medium ${
-                        entry.syncStatus === 'supabase' 
-                          ? 'bg-green-100 text-green-800 border border-green-200' 
-                          : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                      }`}>
-                        {entry.syncStatus === 'supabase' ? 'Supabase' : 'ローカル'}
-                      </span>
-                    )}
-                    {(entry.urgency_level || entry.urgencyLevel) && (
-                      <span className={`px-2 py-1 rounded-full text-xs font-jp-medium ${
-                        (entry.urgency_level || entry.urgencyLevel) === 'high' ? 'bg-red-100 text-red-800' :
-                        (entry.urgency_level || entry.urgencyLevel) === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        <AlertTriangle className="w-3 h-3 inline mr-1" />
-                        {urgencyLevels.find(l => l.value === (entry.urgency_level || entry.urgencyLevel))?.label}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {entry.user?.line_username && (
-                      <span className="text-xs text-gray-500 font-jp-normal flex items-center">
-                        <User className="w-3 h-3 mr-1" />
-                        {entry.user.line_username}
-                      </span>
-                    )}
-                    {(entry.self_esteem_score || entry.selfEsteemScore || entry.worthlessness_score || entry.worthlessnessScore) && (
-                      <div className="flex items-center space-x-1 text-xs text-gray-500">
-                        <Tag className="w-3 h-3" />
-                        <span>自己肯定感: {entry.self_esteem_score || entry.selfEsteemScore || 'N/A'}</span>
-                        <span>無価値感: {entry.worthlessness_score || entry.worthlessnessScore || 'N/A'}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-sm font-jp-medium text-gray-700">出来事: </span>
-                    <span className="text-sm text-gray-900 font-jp-normal">{entry.event}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-jp-medium text-gray-700">気づき: </span>
-                    <span className="text-sm text-gray-900 font-jp-normal">{entry.realization}</span>
-                  </div>
-                  {(entry.counselor_memo || entry.counselorMemo) && (
-                    <div className="bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
-                      <span className="text-sm font-jp-medium text-gray-700">カウンセラーメモ: </span>
-                      <span className="text-sm text-gray-900 font-jp-normal">{entry.counselor_memo || entry.counselorMemo}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center mt-3 pt-3 border-t">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-500 font-jp-normal">
-                      {entry.assigned_counselor || entry.assignedCounselor || '未割り当て'}
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => onViewEntry(entry)}
-                        className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
-                        title="詳細を見る"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {onDeleteEntry && (
-                        <button
-                          onClick={() => onDeleteEntry(entry.id)}
-                          className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
-                          title="削除"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <AdminDiaryList 
+            allEntries={filteredEntries}
+            onViewEntry={onViewEntry}
+            onDeleteEntry={onDeleteEntry}
+          />
         )}
       </div>
     </div>
@@ -791,3 +692,6 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
 };
 
 export default AdvancedSearchFilter;
+
+// AdminDiaryListコンポーネントのインポート
+import AdminDiaryList from './AdminDiaryList';

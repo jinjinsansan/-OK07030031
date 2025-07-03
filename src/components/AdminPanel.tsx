@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Calendar, Search, Filter, RefreshCw, User, Shield, Database, Download, Trash2, Eye, Edit3, AlertTriangle, CheckCircle, Clock, MessageCircle, Users, BookOpen, BarChart2, Settings, Save, FileText, Layers, Upload } from 'lucide-react';
 import AdvancedSearchFilter from './AdvancedSearchFilter';
+import AdminDiaryList from './AdminDiaryList';
 import CounselorManagement from './CounselorManagement';
 import CounselorChat from './CounselorChat';
 import ConsentHistoryManagement from './ConsentHistoryManagement';
@@ -806,12 +807,11 @@ const AdminPanel: React.FC = () => {
           <TabsContent value="diary" className="space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-jp-bold text-gray-900 mb-6 flex items-center">
-                <BookOpen className="w-5 h-5 text-blue-600 mr-2" aria-hidden="true" />
+                <BookOpen className="w-5 h-5 text-blue-600 mr-2" />
                 日記一覧
               </h2>
-              <AdvancedSearchFilter 
-                entries={entries} 
-                onFilteredResults={handleFilteredResults} 
+              <AdminDiaryList 
+                allEntries={entries} 
                 onViewEntry={handleViewEntry}
                 onDeleteEntry={handleDeleteEntry}
               />
@@ -821,7 +821,7 @@ const AdminPanel: React.FC = () => {
           <TabsContent value="search" className="space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-jp-bold text-gray-900 mb-6 flex items-center">
-                <Search className="w-5 h-5 text-blue-600 mr-2" aria-hidden="true" />
+                <Search className="w-5 h-5 text-blue-600 mr-2" />
                 詳細検索
               </h2>
               <AdvancedSearchFilter 
