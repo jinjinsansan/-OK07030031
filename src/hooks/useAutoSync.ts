@@ -244,8 +244,13 @@ export const useAutoSync = (): AutoSyncState => {
      console.log('同期する日記データ:', newEntries.length, '件（全', entries.length, '件中、重複除外後）', 'ユーザーID:', userId);
 
       // 各エントリーをSupabase形式に変換
-     const formattedEntries = newEntries
-        .filter((entry: any) => entry && entry.id && entry.date && entry.emotion) // 無効なデータをフィルタリング
+     const formattedEntries = newEntries.filter((entry: any) => {
+        if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event || !entry.realization) {
+          console.warn('無効なエントリーをスキップ:', entry);
+            return false;
+          }
+          return true;
+        }) // 無効なデータをフィルタリング
         .map((entry: any) => {          
           // UUIDの形式を検証し、無効な場合は新しいUUIDを生成
           let entryId = entry.id;
@@ -269,14 +274,14 @@ export const useAutoSync = (): AutoSyncState => {
             }
           }
           
-          // 既存のIDを保持し、必須フィールドを含める
+          // 必須フィールドを含め、NULL値を適切に処理
           const formattedEntry: any = {
             id: entry.id, // 既存のIDを保持
             user_id: entry.user_id || userId, // 既存のuser_idを保持、なければ新しいIDを使用
             date: entry.date || new Date().toISOString().split('T')[0],
             emotion: entry.emotion || '不明',
-            event: entry.event || '',
-            realization: entry.realization || '',
+            event: entry.event || '', // 空文字列をデフォルト値に
+            realization: entry.realization || '', // 空文字列をデフォルト値に
             created_at: entry.created_at || new Date().toISOString()
           };
           
@@ -287,77 +292,39 @@ export const useAutoSync = (): AutoSyncState => {
               entry.emotion === '達成感' || 
               entry.emotion === '幸せ') {
             
-            // 自己肯定感スコアの処理
-            if (typeof entry.selfEsteemScore === 'number') {
-              formattedEntry.self_esteem_score = entry.selfEsteemScore;
-            } else if (typeof entry.selfEsteemScore === 'string') {
-              formattedEntry.self_esteem_score = parseInt(entry.selfEsteemScore) || 50;
-            } else if (typeof entry.self_esteem_score === 'number') {
-              formattedEntry.self_esteem_score = entry.self_esteem_score;
-            } else if (typeof entry.self_esteem_score === 'string') {
-              formattedEntry.self_esteem_score = parseInt(entry.self_esteem_score) || 50;
-            } else {
-              formattedEntry.self_esteem_score = 50;
-            }
+            // 必ずNULLにならないように数値に変換し、デフォルト値を設定
+            formattedEntry.self_esteem_score = 
+              typeof entry.selfEsteemScore === 'number' ? entry.selfEsteemScore : 
+              (typeof entry.selfEsteemScore === 'string' && entry.selfEsteemScore !== '' ? parseInt(entry.selfEsteemScore) : 
+               (typeof entry.self_esteem_score === 'number' ? entry.self_esteem_score : 
+                (typeof entry.self_esteem_score === 'string' && entry.self_esteem_score !== '' ? parseInt(entry.self_esteem_score) : 50)));
             
-            // 無価値感スコアの処理
-            if (typeof entry.worthlessnessScore === 'number') {
-              formattedEntry.worthlessness_score = entry.worthlessnessScore;
-            } else if (typeof entry.worthlessnessScore === 'string') {
-              formattedEntry.worthlessness_score = parseInt(entry.worthlessnessScore) || 50;
-            } else if (typeof entry.worthlessness_score === 'number') {
-              formattedEntry.worthlessness_score = entry.worthlessness_score;
-            } else if (typeof entry.worthlessness_score === 'string') {
-              formattedEntry.worthlessness_score = parseInt(entry.worthlessness_score) || 50;
-            } else {
-              formattedEntry.worthlessness_score = 50;
+            formattedEntry.worthlessness_score = 
+              typeof entry.worthlessnessScore === 'number' ? entry.worthlessnessScore : 
+              (typeof entry.worthlessnessScore === 'string' && entry.worthlessnessScore !== '' ? parseInt(entry.worthlessnessScore) : 
+               (typeof entry.worthlessness_score === 'number' ? entry.worthlessness_score : 
+                (typeof entry.worthlessness_score === 'string' && entry.worthlessness_score !== '' ? parseInt(entry.worthlessness_score) : 50)));
+          }
+          
+          // オプションフィールドは存在する場合のみ追加
+          const optionalFields = {
+            assigned_counselor: entry.assigned_counselor || entry.assignedCounselor || '',
+            // urgency_levelは'high', 'medium', 'low'または空文字列のみ許可
+            urgency_level: (entry.urgency_level || entry.urgencyLevel || '') !== '' && 
+                          ['high', 'medium', 'low'].includes(entry.urgency_level || entry.urgencyLevel || '') ? 
+                          (entry.urgency_level || entry.urgencyLevel) : '',
+            is_visible_to_user: entry.is_visible_to_user !== undefined ? !!entry.is_visible_to_user : 
+                               (entry.isVisibleToUser !== undefined ? !!entry.isVisibleToUser : false),
+            counselor_name: entry.counselor_name || entry.counselorName || '',
+            counselor_memo: entry.counselor_memo || entry.counselorMemo || ''
+          };
+          
+          // 値が存在するフィールドのみを追加
+          Object.entries(optionalFields).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+              formattedEntry[key] = value;
             }
-          }
-          
-          // カウンセラーメモの処理
-          if (entry.counselor_memo !== undefined || entry.counselorMemo !== undefined) {
-            formattedEntry.counselor_memo = entry.counselor_memo !== undefined ? 
-                                           entry.counselor_memo : 
-                                           entry.counselorMemo || '';
-          }
-          
-          // 表示設定の処理
-          if (entry.is_visible_to_user !== undefined || entry.isVisibleToUser !== undefined) {
-            formattedEntry.is_visible_to_user = entry.is_visible_to_user !== undefined ? 
-                                               entry.is_visible_to_user : 
-                                               entry.isVisibleToUser || false;
-          }
-          
-          // カウンセラー名の処理
-          if (entry.counselor_name !== undefined || entry.counselorName !== undefined) {
-            formattedEntry.counselor_name = entry.counselor_name !== undefined ? 
-                                           entry.counselor_name : 
-                                           entry.counselorName || '';
-          }
-          
-          // 担当カウンセラーの処理
-          if (entry.assigned_counselor !== undefined || entry.assignedCounselor !== undefined) {
-            formattedEntry.assigned_counselor = entry.assigned_counselor !== undefined ? 
-                                               entry.assigned_counselor : 
-                                               entry.assignedCounselor || '';
-          }
-          
-          // 緊急度の処理
-          if (entry.urgency_level !== undefined || entry.urgencyLevel !== undefined) {
-            // 緊急度の値を取得
-            let urgencyValue = entry.urgency_level !== undefined ? 
-                             entry.urgency_level : 
-                             entry.urgencyLevel || '';
-
-            // 許可された値のみを設定（high, medium, low, または空文字列）
-            if (urgencyValue !== 'high' && urgencyValue !== 'medium' && urgencyValue !== 'low' && urgencyValue !== '') {
-              // 無効な値の場合は空文字列に設定
-              console.warn(`無効な緊急度の値: ${urgencyValue}、空に設定します`);
-              urgencyValue = '';
-            }
-            
-            formattedEntry.urgency_level = urgencyValue;
-          }
+          });
           
           return formattedEntry;
         });
@@ -409,7 +376,7 @@ export const useAutoSync = (): AutoSyncState => {
   // 日記削除時の同期処理
   const syncDeleteDiary = useCallback(async (diaryId: string): Promise<boolean> => {
     if (!supabase) {
-      console.log('ローカルモードで動作中: Supabase接続なし、削除同期をスキップします');
+      console.log('ローカルモードで動作中: Supabase接続なし、削除同期をスキップします', diaryId);
       return true; // ローカルモードでは成功とみなす
     }
     
@@ -424,7 +391,9 @@ export const useAutoSync = (): AutoSyncState => {
     try {
       // Supabaseから日記を削除
       const { error } = await supabase
-        .from('diary_entries').delete().eq('id', diaryId);
+        .from('diary_entries')
+        .delete()
+        .eq('id', diaryId);
       
       if (error) {
         console.error('Supabase日記削除エラー:', error, 'ID:', diaryId);
@@ -458,7 +427,7 @@ export const useAutoSync = (): AutoSyncState => {
   // 複数日記削除時の同期処理
   const syncBulkDeleteDiaries = useCallback(async (diaryIds: string[]): Promise<boolean> => {
     if (!supabase) {
-      console.log('ローカルモードで動作中: Supabase接続なし、一括削除同期をスキップします', diaryIds.length);
+      console.log('ローカルモードで動作中: Supabase接続なし、一括削除同期をスキップします', diaryIds?.length);
       return true; // ローカルモードでは成功とみなす
     }
     
@@ -467,7 +436,7 @@ export const useAutoSync = (): AutoSyncState => {
       return false;
     }
     
-    if (!diaryIds || diaryIds.length === 0) {
+    if (!diaryIds || !Array.isArray(diaryIds) || diaryIds.length === 0) {
       console.log('削除する日記IDがありません');
       return true; // 削除するものがない場合は成功とみなす
     }
@@ -484,7 +453,7 @@ export const useAutoSync = (): AutoSyncState => {
       for (let i = 0; i < diaryIds.length; i += chunkSize) {
         const chunk = diaryIds.slice(i, i + chunkSize);
         try {
-          const { error } = await supabase
+          const { error, count } = await supabase
             .from('diary_entries')
             .delete()
             .in('id', chunk)
@@ -494,7 +463,7 @@ export const useAutoSync = (): AutoSyncState => {
             console.error(`日記の一括削除エラー (${i}~${i+chunk.length})`, error, 'IDs:', chunk);
             success = false;
           } else {
-            deletedCount += chunk.length;
+            deletedCount += count || 0;
           }
         } catch (err) {
           console.error(`日記の一括削除中にエラー (${i}~${i+chunk.length})`, err, 'IDs:', chunk);
@@ -528,8 +497,8 @@ export const useAutoSync = (): AutoSyncState => {
   // 手動同期のトリガー
   const triggerManualSync = useCallback(async (): Promise<boolean> => {
    // 手動同期の場合は処理済みIDをリセットして全データを同期
-   setProcessedEntryIds(new Set());
-   setProcessedEntryMap(new Map());
+    setProcessedEntryIds(new Set());
+    setProcessedEntryMap(new Map());
     return await syncData();
   }, [syncData]);
   

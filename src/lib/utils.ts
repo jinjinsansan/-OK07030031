@@ -22,14 +22,16 @@ export function formatDiaryForSupabase(diaryEntry: any, userId: string) {
     emotion: diaryEntry.emotion,
     event: diaryEntry.event,
     realization: diaryEntry.realization,
-    self_esteem_score: diaryEntry.selfEsteemScore || diaryEntry.self_esteem_score || 0,
-    worthlessness_score: diaryEntry.worthlessnessScore || diaryEntry.worthlessness_score || 0,
-    created_at: diaryEntry.created_at || new Date().toISOString()
-  };
-  
-  // assigned_counselorフィールドが存在する場合のみ追加
-  if (diaryEntry.assigned_counselor !== undefined || diaryEntry.assignedCounselor !== undefined) {
-    formattedEntry.assigned_counselor = diaryEntry.assigned_counselor !== undefined ? 
+    self_esteem_score: 
+      typeof diaryEntry.selfEsteemScore === 'number' ? diaryEntry.selfEsteemScore : 
+      (typeof diaryEntry.selfEsteemScore === 'string' && diaryEntry.selfEsteemScore !== '' ? parseInt(diaryEntry.selfEsteemScore) : 
+       (typeof diaryEntry.self_esteem_score === 'number' ? diaryEntry.self_esteem_score : 
+        (typeof diaryEntry.self_esteem_score === 'string' && diaryEntry.self_esteem_score !== '' ? parseInt(diaryEntry.self_esteem_score) : 50))),
+    worthlessness_score: 
+      typeof diaryEntry.worthlessnessScore === 'number' ? diaryEntry.worthlessnessScore : 
+      (typeof diaryEntry.worthlessnessScore === 'string' && diaryEntry.worthlessnessScore !== '' ? parseInt(diaryEntry.worthlessnessScore) : 
+       (typeof diaryEntry.worthlessness_score === 'number' ? diaryEntry.worthlessness_score : 
+        (typeof diaryEntry.worthlessness_score === 'string' && diaryEntry.worthlessness_score !== '' ? parseInt(diaryEntry.worthlessness_score) : 50))),
                                         diaryEntry.assigned_counselor : 
                                         diaryEntry.assignedCounselor;
   }
@@ -73,24 +75,24 @@ export function formatDiaryForSupabase(diaryEntry: any, userId: string) {
   }
   
   // NULL値を空文字列に変換
-  if (formattedEntry.counselor_memo === null) {
+  if (formattedEntry.counselor_memo === null || formattedEntry.counselor_memo === undefined) {
     formattedEntry.counselor_memo = '';
   }
   
-  if (formattedEntry.counselor_name === null) {
+  if (formattedEntry.counselor_name === null || formattedEntry.counselor_name === undefined) {
     formattedEntry.counselor_name = '';
   }
   
-  if (formattedEntry.assigned_counselor === null) {
+  if (formattedEntry.assigned_counselor === null || formattedEntry.assigned_counselor === undefined) {
     formattedEntry.assigned_counselor = '';
   }
   
-  if (formattedEntry.urgency_level === null) {
+  if (formattedEntry.urgency_level === null || formattedEntry.urgency_level === undefined) {
     formattedEntry.urgency_level = '';
   }
   
   // is_visible_to_userがNULLの場合はfalseに設定
-  if (formattedEntry.is_visible_to_user === null) {
+  if (formattedEntry.is_visible_to_user === null || formattedEntry.is_visible_to_user === undefined) {
     formattedEntry.is_visible_to_user = false;
   }
   
@@ -113,11 +115,14 @@ export function formatDiaryForLocal(supabaseEntry: any) {
     selfEsteemScore: supabaseEntry.self_esteem_score || 0,
     worthlessnessScore: supabaseEntry.worthlessness_score || 0,
     counselor_memo: supabaseEntry.counselor_memo || null, 
-    is_visible_to_user: supabaseEntry.is_visible_to_user || false, 
-    counselor_name: supabaseEntry.counselor_name || null, 
+    assigned_counselor: diaryEntry.assigned_counselor || diaryEntry.assignedCounselor || '',
+    // urgency_levelは'high', 'medium', 'low'または空文字列のみ許可
+    urgency_level: (diaryEntry.urgency_level || diaryEntry.urgencyLevel || '') !== '' && 
+                  ['high', 'medium', 'low'].includes(diaryEntry.urgency_level || diaryEntry.urgencyLevel || '') ? 
+                  (diaryEntry.urgency_level || diaryEntry.urgencyLevel) : '',
     assigned_counselor: supabaseEntry.assigned_counselor || null, 
-    urgency_level: supabaseEntry.urgency_level || null,
-    created_at: supabaseEntry.created_at || new Date().toISOString(),
-    user: supabaseEntry.users || { line_username: 'Unknown User' }
+                       (diaryEntry.isVisibleToUser !== undefined ? diaryEntry.isVisibleToUser : false),
+    counselor_name: diaryEntry.counselor_name || diaryEntry.counselorName || '',
+    counselor_memo: diaryEntry.counselor_memo || diaryEntry.counselorMemo || ''
   };
 }

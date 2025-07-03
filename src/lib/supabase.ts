@@ -60,16 +60,50 @@ export const diaryService = {
   // 日記の同期
   async syncDiaries(userId: string, diaries: any[]) {
     if (!supabase) {
-      return { success: false, error: 'Supabase接続がありません' };
+      console.log('ローカルモードで動作中: Supabase接続なし、同期をスキップします');
+      return { success: true, error: null };
     }
     
     try {
+      // 日記データの検証
+      const validDiaries = diaries.filter(entry => {
+        // 必須フィールドの検証
+        if (!entry || !entry.id || !entry.date || !entry.emotion || !entry.event || !entry.realization) {
+          console.warn('無効なエントリーをスキップ:', entry);
+          return false;
+        }
+        
+        // スコアフィールドの検証
+        if (entry.self_esteem_score === null || entry.self_esteem_score === undefined) {
+          entry.self_esteem_score = 50;
+        }
+        
+        if (entry.worthlessness_score === null || entry.worthlessness_score === undefined) {
+          entry.worthlessness_score = 50;
+        }
+        
+        // urgency_levelの検証
+        if (entry.urgency_level && entry.urgency_level !== '' && 
+            !['high', 'medium', 'low'].includes(entry.urgency_level)) {
+          entry.urgency_level = '';
+        }
+        
+        return true;
+      });
+      
+      if (validDiaries.length === 0) {
+        console.log('有効な日記データがありません');
+        return { success: true, error: null };
+      }
+      
+      console.log(`${validDiaries.length}件の有効な日記データを同期します`);
+      
       // 日記データをSupabaseに同期
       const { error } = await supabase
         .from('diary_entries')
-        .upsert(diaries, {
+        .upsert(validDiaries, {
           onConflict: 'id',
-          ignoreDuplicates: false
+          ignoreDuplicates: true
         });
       
       if (error) {
