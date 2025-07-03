@@ -89,6 +89,26 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
     return colorMap[emotion] || 'border-gray-200';
   };
 
+  const getEmotionTextColor = (emotion: string) => {
+    const colorMap: { [key: string]: string } = {
+      // ネガティブな感情
+      '恐怖': 'text-purple-800',
+      '悲しみ': 'text-blue-800',
+      '怒り': 'text-red-800',
+      '悔しい': 'text-green-800',
+      '無価値感': 'text-gray-800',
+      '罪悪感': 'text-orange-800',
+      '寂しさ': 'text-indigo-800',
+      '恥ずかしさ': 'text-pink-800',
+      // ポジティブな感情
+      '嬉しい': 'text-yellow-800',
+      '感謝': 'text-teal-800',
+      '達成感': 'text-lime-800',
+      '幸せ': 'text-amber-800'
+    };
+    return colorMap[emotion] || 'text-gray-800';
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     // 無効な日付の場合は元の文字列を返す
@@ -136,12 +156,12 @@ const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
           {entries.map((entry) => (
             <div 
               key={entry.id} 
-              className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${getEmotionColor(entry.emotion)}`}
+              className={`border ${getEmotionBorderColor(entry.emotion)} rounded-lg p-4 hover:shadow-md transition-shadow ${getEmotionColor(entry.emotion)}`}
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
                   <span className="text-sm font-jp-medium text-gray-900">{formatDate(entry.date)}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-jp-medium border ${getEmotionBorderColor(entry.emotion)}`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-jp-medium border ${getEmotionBorderColor(entry.emotion)} ${getEmotionTextColor(entry.emotion)}`}>
                     {entry.emotion}
                   </span>
                   {entry.syncStatus && (
