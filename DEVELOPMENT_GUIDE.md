@@ -97,7 +97,8 @@ src/
 │   ├── DeviceAuthManagement.tsx    # デバイス認証管理画面
 │   └── SecurityDashboard.tsx       # セキュリティダッシュボード
 └── lib/
-    └── deviceAuth.ts               # デバイス認証システム
+    ├── deviceAuth.ts               # デバイス認証システム
+    └── cleanupTestData.ts          # テストデータ削除ロジック
 ```
 
 ### 主要な変更があったファイル
@@ -165,8 +166,8 @@ src/
 ## 🔧 環境変数設定
 ```env
 # Supabase設定（必須）
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=https://afojjlfuwglzukzinpzx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmb2pqbGZ1d2dsenVremlucHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDc4MzEsImV4cCI6MjA2NjE4MzgzMX0.ovSwuxvBL5gHtW4XdDkipz9QxWL_njAkr7VQgy1uVRY
 
 # ローカルモード設定（オプション）
 VITE_LOCAL_MODE=false
