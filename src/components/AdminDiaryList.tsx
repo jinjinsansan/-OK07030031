@@ -71,7 +71,6 @@ interface AdminDiaryListProps {
 const AdminDiaryList: React.FC<AdminDiaryListProps> = ({
   allEntries,
   onViewEntry,
-  adminMode = true,
   onDeleteEntry
 }) => {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
