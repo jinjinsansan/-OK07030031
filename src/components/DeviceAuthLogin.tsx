@@ -131,7 +131,7 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
         return;
       }
       
-      if (hashedPin === credentials.pinCodeHash) {
+      if (hashedPin.hash === credentials.pinCodeHash) {
         // ログイン成功
         resetLoginAttempts(credentials.lineUsername);
         logSecurityEvent('login_success', credentials.lineUsername, 'デバイス認証によるログイン成功');

@@ -412,7 +412,7 @@ const CalendarSearch: React.FC<CalendarSearchProps> = ({ onViewEntry, onDeleteEn
                       </div>
                     </div>
 
-                    {/* カウンセラーメモ */}
+                    {/* カウンセラーコメント */}
                     {((entry.is_visible_to_user || entry.isVisibleToUser) && (entry.counselor_memo || entry.counselorMemo)) && (
                       <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 mb-3">
                         <div className="flex items-center space-x-2 mb-1">

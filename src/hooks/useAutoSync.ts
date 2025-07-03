@@ -309,9 +309,6 @@ export const useAutoSync = (): AutoSyncState => {
               formattedEntry.worthlessness_score = entry.worthlessness_score;
             } else if (typeof entry.worthlessness_score === 'string') {
               formattedEntry.worthlessness_score = parseInt(entry.worthlessness_score) || 50;
-              formattedEntry.worthlessness_score = parseInt(entry.worthlessness_score) || 50;
-              formattedEntry.worthlessness_score = parseInt(entry.worthlessness_score) || 50;
-              formattedEntry.worthlessness_score = parseInt(entry.worthlessness_score) || 50;
             } else {
               formattedEntry.worthlessness_score = 50;
             }
@@ -365,11 +362,8 @@ export const useAutoSync = (): AutoSyncState => {
           return formattedEntry;
         });
       
-      // 所有者列(user_id, username)を送らないようにサニタイズ
-      const sanitized = formattedEntries.map(({ user_id, username, ...rest }) => rest);
-      
       // 日記データを同期
-      const { success, error } = await diaryService.syncDiaries(userId, sanitized);
+      const { success, error } = await diaryService.syncDiaries(userId, formattedEntries);
       
       // 同期結果の詳細をログに出力
       console.log('同期結果:', success ? '成功' : '失敗', error || '', 'データ件数:', formattedEntries.length, 'ユーザーID:', userId);

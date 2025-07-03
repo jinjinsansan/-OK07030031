@@ -186,7 +186,8 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
                 <div className="space-y-2 text-sm text-gray-700">
                   <p>・LINEユーザー識別子（userId）</p>
                   <p>・あなたが投稿する「感情日記」の本文（精神・心理状態を含む要配慮個人情報）</p>
-                  <p>・投稿日時・端末等の利用メタデータ</p>
+                  <p>・デバイス認証情報（デバイスID、PIN番号のハッシュ値、秘密の質問の回答）</p>
+                  <p>・投稿日時・セキュリティイベント等の利用メタデータ</p>
                 </div>
               </div>
             </div>
@@ -200,6 +201,7 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
                 <div className="space-y-2 text-sm text-gray-700">
                   <p>感情日記サービスの提供および品質向上のため</p>
                   <p>心理カウンセラーによる個別アドバイス・緊急対応のため</p>
+                  <p>デバイス認証によるセキュリティ確保のため</p>
                   <p>匿名化・統計化したうえでの研究・サービス改善のため</p>
                 </div>
               </div>
@@ -226,6 +228,7 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
                 <h3 className="font-jp-semibold text-gray-900 mb-3">■ 保管・管理について</h3>
                 <div className="space-y-2 text-sm text-gray-700">
                   <p>・取得したデータは暗号化して厳重に管理し、アクセス権限を限定します。</p>
+                  <p>・デバイス認証情報は暗号化してローカルに保存され、サーバーには送信されません。</p>
                   <p>・利用目的達成後 ［保管期間：1年］ を経過した個票データは速やかに削除します。</p>
                 </div>
               </div>
@@ -240,6 +243,38 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
                 <div className="space-y-2 text-sm text-gray-700">
                   <p>ご自身の情報について、開示・訂正・削除・利用停止をいつでも請求できます。</p>
                   <p className="font-jp-medium">お問い合わせ窓口：info@namisapo.com</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-jp-semibold text-gray-900 mb-3">■ 重要事項</h3>
+                <div className="space-y-2 text-sm text-gray-700">
+                  <p>本プライバシーポリシーは、サービス改善のため予告なく変更される場合があります。</p>
+                  <p>デバイス認証システムはセキュリティ向上のために導入されており、個人情報保護に貢献します。</p>
+                  <p>変更があった場合は、アプリ内またはウェブサイトにて通知いたします。</p>
+                  <p>継続してサービスをご利用いただくことで、変更後のプライバシーポリシーに同意したものとみなします。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-6">
+            <div className="flex items-start space-x-3">
+              <MessageCircle className="w-6 h-6 text-gray-600 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-jp-semibold text-gray-900 mb-3">■ お問い合わせ</h3>
+                <div className="space-y-2 text-sm text-gray-700">
+                  <p>プライバシーポリシーに関するご質問やご不明な点がございましたら、以下までお問い合わせください。</p>
+                  <div className="bg-white rounded-lg p-4 border border-gray-200 mt-3">
+                    <p className="font-jp-medium text-gray-900">一般社団法人NAMIDAサポート協会</p>
+                    <p>メール：info@namisapo.com</p>
+                    <p>受付時間：平日 9:00-17:00</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -394,8 +429,11 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 mb-2">
             このアプリケーションは個人情報保護法に準拠して設計されています
+          </p>
+          <p className="text-xs text-gray-400">
+            最終更新日：2025年1月22日
           </p>
         </div>
       </div>

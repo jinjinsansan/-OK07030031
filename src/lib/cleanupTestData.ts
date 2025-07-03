@@ -1,132 +1,52 @@
 import { supabase } from './supabase';
 
-/**
- * 重複した日記エントリーを完全に削除する関数
- * ローカルストレージとSupabaseの両方から重複を削除します
- */
-export const cleanupDuplicateEntries = async (): Promise<{
-  localRemoved: number;
-  supabaseRemoved: number;
-  success: boolean;
-}> => {
-  try {
-    let localRemoved = 0;
-    let supabaseRemoved = 0;
-
-    // ローカルストレージから重複データを削除
-    const savedEntries = localStorage.getItem('journalEntries');
-    if (savedEntries) {
-      const entries = JSON.parse(savedEntries);
-      
-      // 重複を検出するためのマップ
-      const uniqueMap = new Map();
-      const uniqueEntries = [];
-      
-      // 重複を除外して新しい配列を作成
-      for (const entry of entries) {
-        // 日付、感情、内容の組み合わせで一意性を判断
-        const key = `${entry.date}_${entry.emotion}_${entry.event.substring(0, 50)}`;
-        
-        if (!uniqueMap.has(key)) {
-          uniqueMap.set(key, entry);
-          uniqueEntries.push(entry);
-        } else {
-          localRemoved++;
-          console.log(`重複エントリーを検出: ${entry.date}, ${entry.emotion}`);
-        }
-      }
-      
-      // 重複を除外したデータを保存
-      localStorage.setItem('journalEntries', JSON.stringify(uniqueEntries));
-      console.log(`ローカルストレージから${localRemoved}件の重複エントリーを削除しました`);
-    }
-
-    // Supabaseから重複を削除（接続されている場合のみ）
-    if (supabase) {
-      try {
-        // Supabaseで重複削除関数を実行
-        const { data, error } = await supabase.rpc('remove_duplicate_diary_entries');
-        
-        if (error) {
-          console.error('Supabase重複削除エラー:', error);
-        } else {
-          supabaseRemoved = 100; // 実際の削除数は取得できないため仮の値
-          console.log('Supabaseの重複データを削除しました');
-        }
-      } catch (supabaseError) {
-        console.error('Supabase接続エラー:', supabaseError);
-      }
-    }
-
-    return {
-      localRemoved,
-      supabaseRemoved,
-      success: true
-    };
-  } catch (error) {
-    console.error('重複削除エラー:', error);
-    return {
-      localRemoved: 0,
-      supabaseRemoved: 0,
-      success: false
-    };
-  }
-};
-
-/**
- * テストデータを削除する関数
- * Boltが作成したテストデータを削除し、実際のユーザーデータは保持します
- */
+// テストデータを削除する関数
 export const cleanupTestData = async (): Promise<{
   localRemoved: number;
   supabaseRemoved: number;
   success: boolean;
 }> => {
   try {
+    // ローカルストレージからのテストデータ削除
     let localRemoved = 0;
-    let supabaseRemoved = 0;
-
-    // ローカルストレージからテストデータを削除
     const savedEntries = localStorage.getItem('journalEntries');
+    
     if (savedEntries) {
       const entries = JSON.parse(savedEntries);
-      
-      // テストデータを識別（例：特定のパターンを持つデータ）
-      const realEntries = entries.filter((entry: any) => {
-        if (!entry || !entry.event) return true; // 無効なエントリーはスキップ
+      if (Array.isArray(entries)) {
+        // テストデータの特徴を持つエントリーをフィルタリング
+        const filteredEntries = entries.filter(entry => {
+          // テストデータの特徴（例: 特定のキーワードを含む）
+          const isTestData = 
+            (entry.event && entry.event.includes('テスト')) || 
+            (entry.realization && entry.realization.includes('テスト')) ||
+            (entry.event && entry.event.includes('サンプル')) ||
+            (entry.realization && entry.realization.includes('サンプル')) ||
+            (entry.event && entry.event.includes('test')) ||
+            (entry.realization && entry.realization.includes('test'));
+          
+          // テストデータでない場合は保持
+          return !isTestData;
+        });
         
-        // テストデータの特徴（例：特定の文字列を含むか、特定の日付範囲内か）
-        const isTestData = 
-          (entry.event && entry.event.includes('テストデータ')) || 
-          (entry.realization && entry.realization.includes('テストデータ')) ||
-          (entry.event && entry.event.includes('This is a test entry')) ||
-          (entry.realization && entry.realization.includes('This is a test realization')) ||
-          (entry.event && entry.event.includes('テスト用')) ||
-          (entry.event && entry.event.includes('仁さんテスト')) ||
-          (entry.event && entry.event.includes('vivaldiさんテスト')) ||
-          (entry.event && entry.event.includes('にさんテスト')) ||
-          (entry.event && entry.event.includes('テスト')) ||
-          (entry.event && entry.event.includes('日目です。日記です。テスト用'));
+        // 削除されたエントリー数を計算
+        localRemoved = entries.length - filteredEntries.length;
         
-        if (isTestData) {
-          localRemoved++;
-          return false;
-        }
-        return true;
-      });
-      
-      // 実際のユーザーデータのみを保存
-      localStorage.setItem('journalEntries', JSON.stringify(realEntries));
+        // フィルタリングされたエントリーを保存
+        localStorage.setItem('journalEntries', JSON.stringify(filteredEntries));
+      }
     }
-
-    // Supabaseからテストデータを削除（接続されている場合のみ）
+    
+    // Supabaseからのテストデータ削除
+    let supabaseRemoved = 0;
+    
     if (supabase) {
       try {
-        // テストデータを識別して削除
+        // テストデータの特徴を持つエントリーを削除
         const { data, error } = await supabase
           .from('diary_entries')
           .delete()
-          .or('event.ilike.%テストデータ%,realization.ilike.%テストデータ%,event.ilike.%This is a test entry%,realization.ilike.%This is a test realization%,event.ilike.%テスト用%,event.ilike.%仁さんテスト%,event.ilike.%vivaldiさんテスト%,event.ilike.%にさんテスト%,event.ilike.%テスト%,event.ilike.%日目です。日記です。テスト用%')
+          .or('event.ilike.%テスト%,realization.ilike.%テスト%,event.ilike.%サンプル%,realization.ilike.%サンプル%,event.ilike.%test%,realization.ilike.%test%')
           .select();
         
         if (error) {
@@ -134,11 +54,11 @@ export const cleanupTestData = async (): Promise<{
         } else if (data) {
           supabaseRemoved = data.length;
         }
-      } catch (supabaseError) {
-        console.error('Supabase接続エラー:', supabaseError);
+      } catch (error) {
+        console.error('Supabaseテストデータ削除エラー:', error);
       }
     }
-
+    
     return {
       localRemoved,
       supabaseRemoved,
@@ -154,33 +74,35 @@ export const cleanupTestData = async (): Promise<{
   }
 };
 
-/**
- * 全ての日記データを削除する関数
- * 注意: この関数は慎重に使用してください。すべての日記データが削除されます。
- */
+// すべての日記データを削除する関数
 export const deleteAllDiaries = async (): Promise<{
   localRemoved: number;
   supabaseRemoved: number;
   success: boolean;
 }> => {
   try {
+    // ローカルストレージからの削除
     let localRemoved = 0;
-    let supabaseRemoved = 0;
-
-    // ローカルストレージから全ての日記を削除
     const savedEntries = localStorage.getItem('journalEntries');
+    
     if (savedEntries) {
       const entries = JSON.parse(savedEntries);
-      localRemoved = entries.length;
-      localStorage.setItem('journalEntries', JSON.stringify([]));
+      if (Array.isArray(entries)) {
+        localRemoved = entries.length;
+        // 空の配列で上書き
+        localStorage.setItem('journalEntries', JSON.stringify([]));
+      }
     }
-
-    // Supabaseから全ての日記を削除（接続されている場合のみ）
+    
+    // Supabaseからの削除
+    let supabaseRemoved = 0;
+    
     if (supabase) {
       try {
         // 現在のユーザーのIDを取得
         const lineUsername = localStorage.getItem('line-username');
         if (lineUsername) {
+          // ユーザーIDを取得
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('id')
@@ -190,7 +112,7 @@ export const deleteAllDiaries = async (): Promise<{
           if (userError) {
             console.error('ユーザー取得エラー:', userError);
           } else if (userData) {
-            // ユーザーの日記のみを削除
+            // ユーザーの日記を削除
             const { data, error } = await supabase
               .from('diary_entries')
               .delete()
@@ -203,22 +125,19 @@ export const deleteAllDiaries = async (): Promise<{
               supabaseRemoved = data.length;
             }
           }
-        } else {
-          // ユーザー名がない場合は全ての日記を削除しない
-          console.error('ユーザー名が見つかりません。Supabaseからの削除をスキップします。');
         }
-      } catch (supabaseError) {
-        console.error('Supabase接続エラー:', supabaseError);
+      } catch (error) {
+        console.error('Supabase日記削除エラー:', error);
       }
     }
-
+    
     return {
       localRemoved,
       supabaseRemoved,
       success: true
     };
   } catch (error) {
-    console.error('全日記削除エラー:', error);
+    console.error('日記削除エラー:', error);
     return {
       localRemoved: 0,
       supabaseRemoved: 0,
@@ -227,73 +146,57 @@ export const deleteAllDiaries = async (): Promise<{
   }
 };
 
-/**
- * 重複した日記エントリーを削除する関数
- */
+// 重複エントリーを削除する関数
 export const removeDuplicateEntries = async (): Promise<{
   localRemoved: number;
   supabaseRemoved: number;
   success: boolean;
 }> => {
   try {
+    // ローカルストレージからの重複削除
     let localRemoved = 0;
-    let supabaseRemoved = 0;
-    
-    // ローカルストレージから日記データを取得
     const savedEntries = localStorage.getItem('journalEntries');
+    
     if (savedEntries) {
       const entries = JSON.parse(savedEntries);
-      if (!Array.isArray(entries)) {
-        throw new Error('日記データが配列ではありません');
-      }
-      
-      // 重複を検出するためのマップ
-      const uniqueMap = new Map();
-      const uniqueEntries = [];
-      const duplicateIds = [];
-      
-      // 重複を除外して新しい配列を作成
-      for (const entry of entries) {
-        // 日付、感情、内容の組み合わせで一意性を判断
-        const key = `${entry.date}_${entry.emotion}_${entry.event.substring(0, 50)}`;
+      if (Array.isArray(entries)) {
+        // 重複チェック用のマップ
+        const uniqueMap = new Map();
+        const uniqueEntries = [];
         
-        if (!uniqueMap.has(key)) {
-          uniqueMap.set(key, entry);
-          uniqueEntries.push(entry);
-        } else {
-          localRemoved++;
-          duplicateIds.push(entry.id);
-          console.log(`重複エントリーを検出: ${entry.date}, ${entry.emotion}`);
-        }
-      }
-      
-      // 重複を除外したデータを保存
-      localStorage.setItem('journalEntries', JSON.stringify(uniqueEntries));
-      console.log(`ローカルストレージから${localRemoved}件の重複エントリーを削除しました`);
-      
-      // Supabaseからも重複を削除
-      if (supabase && duplicateIds.length > 0) {
-        try {
-          // 重複IDを100件ずつに分割して削除
-          const chunkSize = 100;
-          for (let i = 0; i < duplicateIds.length; i += chunkSize) {
-            const chunk = duplicateIds.slice(i, i + chunkSize);
-            const { error } = await supabase
-              .from('diary_entries')
-              .delete()
-              .in('id', chunk);
-            
-            if (error) {
-              console.error(`Supabase重複削除エラー (${i}~${i+chunk.length}):`, error);
-            } else {
-              supabaseRemoved += chunk.length;
-            }
-          }
+        for (const entry of entries) {
+          // 重複チェック用のキーを作成（日付+感情+内容の先頭50文字）
+          const key = `${entry.date}_${entry.emotion}_${entry.event?.substring(0, 50)}`;
           
-          console.log(`Supabaseから${supabaseRemoved}件の重複エントリーを削除しました`);
-        } catch (supabaseError) {
-          console.error('Supabase接続エラー:', supabaseError);
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, entry);
+            uniqueEntries.push(entry);
+          }
         }
+        
+        // 削除された重複数
+        localRemoved = entries.length - uniqueEntries.length;
+        
+        // 重複を除去したエントリーを保存
+        localStorage.setItem('journalEntries', JSON.stringify(uniqueEntries));
+      }
+    }
+    
+    // Supabaseからの重複削除
+    let supabaseRemoved = 0;
+    
+    if (supabase) {
+      try {
+        // 重複を検出して削除するSQL関数を実行
+        const { data, error } = await supabase.rpc('remove_duplicate_diary_entries');
+        
+        if (error) {
+          console.error('Supabase重複削除エラー:', error);
+        } else if (data) {
+          supabaseRemoved = data;
+        }
+      } catch (error) {
+        console.error('Supabase重複削除エラー:', error);
       }
     }
     

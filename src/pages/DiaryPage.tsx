@@ -360,11 +360,11 @@ const DiaryPage: React.FC = () => {
       });
       
       // 無価値感を選んだ場合、次回のために今回のスコアを前日のスコアとして設定
-      if (finalFormData.emotion === '無価値感' || 
-          finalFormData.emotion === '嬉しい' || 
-          finalFormData.emotion === '感謝' || 
-          finalFormData.emotion === '達成感' || 
-          finalFormData.emotion === '幸せ') {
+      if (formData.emotion === '無価値感' || 
+          formData.emotion === '嬉しい' || 
+          formData.emotion === '感謝' || 
+          formData.emotion === '達成感' || 
+          formData.emotion === '幸せ') {
         setWorthlessnessScores({
           yesterdaySelfEsteem: Number(finalWorthlessnessScores.todaySelfEsteem) || 0,
           yesterdayWorthlessness: Number(finalWorthlessnessScores.todayWorthlessness) || 0,

@@ -142,7 +142,7 @@ export const compareDeviceFingerprints = (current: DeviceFingerprint, saved: Dev
 };
 
 // PIN番号のハッシュ化
-export const hashPinCode = async (pinCode: string, salt?: string): Promise<string> => {
+export const hashPinCode = async (pinCode: string, salt?: string): Promise<any> => {
   // ソルトの生成または使用
   const useSalt = salt || Math.random().toString(36).substring(2, 15);
   

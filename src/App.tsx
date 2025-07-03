@@ -261,7 +261,7 @@ function App() {
               <div className="flex items-start space-x-2">
                 <div className="text-blue-600 mt-0.5">🔒</div>
                 <div className="text-sm text-blue-800">
-                  <p className="font-jp-medium">カウンセラー専用アカウント</p>
+                  <p className="font-jp-medium mb-1">カウンセラー専用アカウント</p>
                   <p className="text-xs mt-1">登録されたカウンセラー用メールアドレスとパスワードを入力してください。</p>
                   <p className="text-xs mt-1">※ アカウント情報は管理者にお問い合わせください</p>
                 </div>
