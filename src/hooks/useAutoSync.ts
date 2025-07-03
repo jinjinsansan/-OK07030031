@@ -374,6 +374,8 @@ export const useAutoSync = (): AutoSyncState => {
       
       // 同期結果をログに出力
       console.log('同期結果:', success ? '✅ 成功' : '❌ 失敗', error || '', 'データ件数:', formattedEntries.length);
+      
+      if (!success) {
         throw new Error(error);
       }
       
@@ -387,6 +389,10 @@ export const useAutoSync = (): AutoSyncState => {
      });
      setProcessedEntryIds(currentProcessedIds);
      setProcessedEntryMap(new Map([...processedEntryMap, ...entryMap]));
+      
+      // 同期時間を更新
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
       localStorage.setItem('last_sync_time', now);
       
       console.log('データ同期完了:', newEntries.length, '件', 'ユーザーID:', userId, '時刻:', now, '同期されたデータ:', formattedEntries.slice(0, 1));
